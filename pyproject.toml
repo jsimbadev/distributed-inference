@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "distributed-inference"
 version = "0.1.0"
-description = "Tools for running, collecting, and combining repeated PyVBMC inference runs on local and cluster-backed infrastructure."
+description = "Tools for running, collecting, and combining repeated inference runs on local and distributed infrastructure."
 readme = "README.md"
 requires-python = ">=3.13"
 license = { text = "MIT" }
@@ -41,7 +41,7 @@ Homepage = "https://github.com/CCMI-CDT/distributed-inference"
 Issues = "https://github.com/CCMI-CDT/distributed-inference/issues"
 
 [project.scripts]
-csvbmc = "cluster_vbmc_inference.cli:main"
+di = "distributed_inference.cli:main"
 
 [dependency-groups]
 dev = [
@@ -52,7 +52,7 @@ dev = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/cluster_vbmc_inference"]
+packages = ["src/distributed_inference"]
 
 [tool.ruff]
 line-length = 88

@@ -1,4 +1,4 @@
-# Cluster VBMC Inference Implementation Plan
+# Distributed Inference Implementation Plan
 
 ## Problem
 
@@ -14,9 +14,9 @@ The problem to solve is operational:
 
 ## Objective
 
-Build a small open-source tool around PyVBMC for running, collecting, and combining repeated inference runs on local and cluster-backed infrastructure.
+Build a small open-source tool for running, collecting, and combining repeated inference runs on local and distributed infrastructure.
 
-The tool should let a user define an inference problem once, execute multiple PyVBMC runs, collect completed outputs, combine posterior approximations, and produce a report.
+The tool should let a user define an inference problem once, execute multiple runs, collect completed outputs, combine posterior approximations, and produce a report.
 
 Cloud support is deferred. The first target is local development plus internal HPC-style execution because many users run models tied to local filesystems, protected data, licensed simulators, or institution-managed compute.
 
@@ -25,18 +25,18 @@ Cloud support is deferred. The first target is local development plus internal H
 Command line:
 
 ```bash
-csvbmc init inference.yaml
-csvbmc submit inference.yaml --backend mini-cluster --runs 64
-csvbmc status runs/my-inference
-csvbmc collect runs/my-inference
-csvbmc combine runs/my-inference
-csvbmc report runs/my-inference
+di init inference.yaml
+di submit inference.yaml --backend mini-cluster --runs 64
+di status runs/my-inference
+di collect runs/my-inference
+di combine runs/my-inference
+di report runs/my-inference
 ```
 
 Python:
 
 ```python
-from cluster_vbmc_inference import InferenceRunSet, MiniClusterBackend
+from distributed_inference import InferenceRunSet, MiniClusterBackend
 
 runset = InferenceRunSet.from_yaml("inference.yaml")
 backend = MiniClusterBackend.from_config("cluster.yaml")
@@ -104,10 +104,10 @@ The GitHub connector could not access `CCMI-CDT/mini-cluster` by the exact repos
 
 ## Package Shape
 
-Working package name:
+Package name:
 
 ```text
-cluster-vbmc-inference
+distributed-inference
 ```
 
 Core concepts:
@@ -168,7 +168,7 @@ Tasks:
 
 Deliverables:
 
-- `src/cluster_vbmc_inference/run.py`.
+- `src/distributed_inference/run.py`.
 - `examples/targets.py`.
 - `configs/baseline/*.yaml`.
 - `docs/run-output-schema.md`.
@@ -192,9 +192,9 @@ Tasks:
 
 Deliverables:
 
-- `src/cluster_vbmc_inference/runset.py`.
-- `src/cluster_vbmc_inference/backends/base.py`.
-- `src/cluster_vbmc_inference/backends/mini_cluster.py`.
+- `src/distributed_inference/runset.py`.
+- `src/distributed_inference/backends/base.py`.
+- `src/distributed_inference/backends/mini_cluster.py`.
 - CLI commands: `submit`, `status`, `collect`.
 
 Acceptance criteria:
@@ -216,7 +216,7 @@ Tasks:
 
 Deliverables:
 
-- `src/cluster_vbmc_inference/manifest.py`.
+- `src/distributed_inference/manifest.py`.
 - JSON schema or Pydantic models for inference outputs.
 - CLI command: `validate`.
 
@@ -239,7 +239,7 @@ Tasks:
 
 Deliverables:
 
-- `src/cluster_vbmc_inference/combine.py`.
+- `src/distributed_inference/combine.py`.
 - CLI command: `combine`.
 - `CombinedPosterior` sampling API.
 - Comparison against individual best-run selection.
@@ -263,8 +263,8 @@ Tasks:
 
 Deliverables:
 
-- `src/cluster_vbmc_inference/diagnostics.py`.
-- `src/cluster_vbmc_inference/report.py`.
+- `src/distributed_inference/diagnostics.py`.
+- `src/distributed_inference/report.py`.
 - CLI command: `report`.
 - Markdown and HTML report outputs.
 
@@ -329,8 +329,8 @@ class Backend:
 
 Deliverables:
 
-- `src/cluster_vbmc_inference/backends/local.py`.
-- `src/cluster_vbmc_inference/backends/slurm.py`.
+- `src/distributed_inference/backends/local.py`.
+- `src/distributed_inference/backends/slurm.py`.
 - `docs/hpc-usage.md`.
 - Example SLURM scripts.
 
@@ -417,14 +417,14 @@ distributed-inference/
   README.md
   pyproject.toml
   plans/
-    cluster-vbmc-inference-implementation-plan.md
+    distributed-inference-implementation-plan.md
   docs/
     mini-cluster-interface.md
     hpc-usage.md
     posterior-combination.md
     run-output-schema.md
   src/
-    cluster_vbmc_inference/
+    distributed_inference/
       __init__.py
       cli.py
       run.py

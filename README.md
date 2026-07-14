@@ -1,6 +1,6 @@
-# Cluster VBMC Inference
+# Distributed Inference
 
-Cluster VBMC Inference is a Python project for running, collecting, and combining repeated PyVBMC inference runs on local and cluster-backed infrastructure.
+Distributed Inference is a Python project for running, collecting, and combining repeated inference runs on local and distributed infrastructure.
 
 The initial workflow is intentionally small:
 
@@ -10,7 +10,7 @@ The initial workflow is intentionally small:
 4. combine posterior approximations;
 5. generate diagnostics and a report.
 
-The first backend target is local development, followed by `mini-cluster` and then SLURM-style internal HPC usage.
+The first inference engine target is PyVBMC. The first execution backend target is local development, followed by `mini-cluster` and then SLURM-style internal HPC usage.
 
 ## Development Status
 

@@ -1,19 +1,19 @@
-"""Command-line entrypoint for cluster VBMC inference."""
+"""Command-line entrypoint for Distributed Inference."""
 
 from __future__ import annotations
 
 import typer
 
 app = typer.Typer(
-    name="csvbmc",
-    help="Run, collect, and combine repeated PyVBMC inference runs.",
+    name="di",
+    help="Run, collect, and combine repeated inference runs.",
     no_args_is_help=True,
 )
 
 
 @app.callback()
 def _main() -> None:
-    """Cluster VBMC inference command-line interface."""
+    """Distributed Inference command-line interface."""
 
 
 def main() -> None:
