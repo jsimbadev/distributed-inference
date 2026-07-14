@@ -1,0 +1,97 @@
+# Development Guide
+
+This guide describes how to set up a local development environment and run the project hygiene tools.
+
+## Prerequisites
+
+Install:
+
+- Python 3.13 or newer;
+- `uv`;
+- Git.
+
+
+## Create The Environment
+
+From the repository root:
+
+```bash
+uv sync --group dev
+```
+
+This installs the package in editable mode with runtime and developer dependencies.
+
+## Install Pre-Commit Hooks
+
+```bash
+uv run pre-commit install
+```
+
+For day-to-day use, hooks run automatically on staged files during `git commit`.
+To run the hooks manually against staged files:
+
+```bash
+uv run pre-commit run
+```
+
+To run the hooks against the whole repository:
+
+```bash
+uv run pre-commit run --all-files
+```
+
+The hooks currently run:
+
+- `ruff check --fix`;
+- `ruff format`;
+- `ty check`.
+
+The pre-commit hooks use local commands through `uv run`. This keeps hook behavior aligned with the project environment instead of relying on separately managed hook environments.
+
+## Run Hygiene Checks Directly
+
+Lint:
+
+```bash
+uv run ruff check
+```
+
+Format:
+
+```bash
+uv run ruff format
+```
+
+Type check:
+
+```bash
+uv run ty check
+```
+
+Tests:
+
+```bash
+uv run pytest
+```
+
+Only the initial scaffold exists at this stage.
+
+## Development Principles
+
+Prefer small, inspectable changes:
+
+- every inference run should leave a manifest;
+- failed runs should be represented explicitly, not silently dropped;
+- config files should be validated before job submission;
+- local execution should work before cluster execution;
+- diagnostics should report uncertainty and disagreement instead of hiding it behind a single combined posterior.
+
+## Whole project validation
+Run:
+
+```bash
+uv run pre-commit run --all-files
+uv run pytest
+```
+
+If a check fails, fix the underlying issue rather than weakening the tool configuration.
