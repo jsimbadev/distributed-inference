@@ -7,12 +7,14 @@ from collections.abc import Callable
 import numpy as np
 from numpy.typing import ArrayLike
 
-from distributed_inference.model import (
+from distributed_inference.bounds import (
     BoundedModel,
     Bounds,
+)
+from distributed_inference.errors import ModelError
+from distributed_inference.model import (
     EvaluationContext,
     Model,
-    ModelError,
     ParameterSpace,
 )
 

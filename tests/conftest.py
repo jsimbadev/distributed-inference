@@ -10,7 +10,7 @@ from distributed_inference import (
     ParameterSpace,
     WithBounds,
 )
-from distributed_inference.model import FloatArray
+from distributed_inference._validation import FloatArray
 
 
 @pytest.fixture

@@ -10,7 +10,8 @@ density.
 ```{toctree}
 :maxdepth: 2
 
-model-abstraction
+concepts/index
+how-to/index
 api
 development
 ```
