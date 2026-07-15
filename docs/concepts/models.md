@@ -45,16 +45,25 @@ model = CallableModel(name="gaussian", dimension=2, fn=log_density)
 
 This is the default user-facing path for simple models.
 
-## Optional Gradients
+## Differentiable Models
 
-Gradient support is a capability on a model, not a requirement for all models.
-If a gradient function is supplied, `CallableModel` exposes
-`log_density_and_gradient`.
+Gradient support is a separate model capability, not an optional branch inside
+`CallableModel`. Use `CallableDifferentiableModel` when the model can evaluate a
+log density and first derivative together.
 
 ```{code-block} python
+from distributed_inference import CallableDifferentiableModel
+
 def log_density_and_gradient(x, context):
     return -0.5 * float(np.dot(x, x)), -x
+
+model = CallableDifferentiableModel(
+    name="gaussian",
+    dimension=2,
+    fn=log_density,
+    gradient_fn=log_density_and_gradient,
+)
 ```
 
 Black-box engines can ignore gradients. Gradient-aware engines can check
-`model.info.supports_gradient`.
+`model.info.supports_gradient` and use the `DifferentiableModel` protocol.

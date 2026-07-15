@@ -5,6 +5,7 @@ from numpy.typing import ArrayLike
 from distributed_inference import (
     BoundedModel,
     Bounds,
+    CallableDifferentiableModel,
     CallableModel,
     EvaluationContext,
     ParameterSpace,
@@ -44,7 +45,7 @@ def bounded_gaussian_model(
 
 
 @pytest.fixture
-def gradient_model() -> CallableModel:
+def gradient_model() -> CallableDifferentiableModel:
     def log_density(x: FloatArray, context: EvaluationContext | None) -> float:
         return -0.5 * float(np.dot(x, x))
 
@@ -54,7 +55,7 @@ def gradient_model() -> CallableModel:
     ) -> tuple[float, FloatArray]:
         return -0.5 * float(np.dot(x, x)), -x
 
-    return CallableModel(
+    return CallableDifferentiableModel(
         name="gradient-gaussian",
         dimension=2,
         fn=log_density,
