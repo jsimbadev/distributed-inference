@@ -1,8 +1,7 @@
-# Set Up A PyVBMC Model
+# Run A PyVBMC Model
 
-PyVBMC needs a log-density callable and bounds. Distributed Inference keeps
-those as separate pieces: a model provides the log density, and `WithBounds`
-adds the bounds capability.
+Distributed Inference treats PyVBMC as an engine implementation. User code
+passes Distributed Inference models, bounds, and run inputs to `PyVBMCEngine`.
 
 ## Define The Model
 
@@ -17,7 +16,7 @@ def log_density(x, context):
 model = CallableModel(name="gaussian", dimension=2, fn=log_density)
 ```
 
-## Add Bounds For PyVBMC
+## Add Bounds
 
 ```{code-block} python
 from distributed_inference import Bounds, WithBounds
@@ -31,32 +30,28 @@ bounds = Bounds(
 bounded_model = WithBounds(model, bounds)
 ```
 
-## Build PyVBMC Inputs
+## Run The Engine
 
 ```{code-block} python
-from distributed_inference.engines.pyvbmc import as_pyvbmc_log_density, pyvbmc_bounds
+from distributed_inference.engines.pyvbmc import PyVBMCEngine, PyVBMCOptions
 
-log_density_for_pyvbmc = as_pyvbmc_log_density(bounded_model)
-pyvbmc_box = pyvbmc_bounds(bounded_model)
-```
-
-`log_density_for_pyvbmc` is a plain callable. `pyvbmc_box` contains the lower,
-upper, plausible lower, and plausible upper bounds PyVBMC needs.
-
-## Pass Values To PyVBMC
-
-```{code-block} python
-from pyvbmc import VBMC
-
-vbmc = VBMC(
-    log_density_for_pyvbmc,
-    x0=np.array([0.0, 0.0]),
-    lower_bounds=pyvbmc_box.lower,
-    upper_bounds=pyvbmc_box.upper,
-    plausible_lower_bounds=pyvbmc_box.plausible_lower,
-    plausible_upper_bounds=pyvbmc_box.plausible_upper,
+engine = PyVBMCEngine(
+    options=PyVBMCOptions(raw_options={"max_fun_evals": 100})
+)
+result = engine.run(
+    bounded_model,
+    initial_point=np.array([0.0, 0.0]),
+    record_evaluations=True,
 )
 ```
 
-The model abstraction stays independent of PyVBMC, while the adapter provides
-the PyVBMC-specific shape.
+The result keeps PyVBMC's posterior object behind the project-level result:
+
+```{code-block} python
+posterior = result.posterior
+diagnostics = result.diagnostics
+evaluations = result.evaluations
+```
+
+`result.evaluations` is an in-memory tuple of model evaluations recorded through
+the Distributed Inference abstraction, not through user-managed PyVBMC callbacks.

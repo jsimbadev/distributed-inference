@@ -20,6 +20,11 @@
    :undoc-members:
    :show-inheritance:
 
+.. automodule:: distributed_inference.engines.base
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 .. automodule:: distributed_inference.engines.pyvbmc
    :members:
    :undoc-members:
