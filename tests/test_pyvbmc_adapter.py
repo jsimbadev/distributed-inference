@@ -11,8 +11,8 @@ from distributed_inference import (
     ParameterSpace,
     WithBounds,
 )
+from distributed_inference._validation import FloatArray
 from distributed_inference.engines.pyvbmc import as_pyvbmc_log_density, pyvbmc_bounds
-from distributed_inference.model import FloatArray
 
 
 def test_as_pyvbmc_log_density_returns_callable(

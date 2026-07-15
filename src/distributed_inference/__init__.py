@@ -1,19 +1,27 @@
 """Tools for repeated inference runs on local and distributed infrastructure."""
 
-from distributed_inference.model import (
+from distributed_inference.bounds import (
     BoundedModel,
     Bounds,
+    WithBounds,
+    bounds_mapping,
+)
+from distributed_inference.errors import (
+    DistributedInferenceError,
+    ModelCapabilityError,
+    ModelError,
+)
+from distributed_inference.model import (
     CallableModel,
     DifferentiableModel,
     EvaluationContext,
     Model,
-    ModelCapabilityError,
-    ModelError,
     ModelInfo,
     ParameterSpace,
+)
+from distributed_inference.transforms import (
     ParameterTransform,
     TransformedModel,
-    WithBounds,
 )
 
 __all__ = [
@@ -21,6 +29,7 @@ __all__ = [
     "Bounds",
     "CallableModel",
     "DifferentiableModel",
+    "DistributedInferenceError",
     "EvaluationContext",
     "Model",
     "ModelCapabilityError",
@@ -31,6 +40,7 @@ __all__ = [
     "TransformedModel",
     "WithBounds",
     "__version__",
+    "bounds_mapping",
 ]
 
 __version__ = "0.1.0"
