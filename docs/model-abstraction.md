@@ -11,6 +11,8 @@ The model abstraction separates three concerns:
 Models are callable:
 
 ```{code-block} python
+from distributed_inference import EvaluationContext
+
 value = model(x, context)
 ```
 
@@ -29,6 +31,10 @@ Any randomness, cache, run identifier, or backend-specific context is passed
 into the operation:
 
 ```{code-block} python
+import numpy as np
+
+from distributed_inference import EvaluationContext
+
 context = EvaluationContext(rng=np.random.default_rng(123))
 value = model(x, context)
 ```
@@ -53,6 +59,8 @@ Many inference engines only need a callable log density and a dimension.
 When an engine requires bounds, attach them by composition:
 
 ```{code-block} python
+from distributed_inference import WithBounds
+
 bounded_model = WithBounds(model, bounds)
 ```
 
@@ -86,6 +94,8 @@ exploit derivative information.
 PyVBMC receives a plain callable:
 
 ```{code-block} python
+from distributed_inference.engines.pyvbmc import as_pyvbmc_log_density, pyvbmc_bounds
+
 log_density = as_pyvbmc_log_density(model, context)
 bounds = pyvbmc_bounds(bounded_model)
 ```
