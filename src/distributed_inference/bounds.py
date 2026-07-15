@@ -11,6 +11,7 @@ from numpy.typing import ArrayLike
 from distributed_inference._validation import (
     FloatArray,
     as_vector,
+    require_less_equal,
     require_same_shape,
 )
 from distributed_inference.model import EvaluationContext, Model, ModelInfo
@@ -29,12 +30,19 @@ class Bounds:
         lower = as_vector(self.lower, name="lower")
         upper = as_vector(self.upper, name="upper")
         require_same_shape(lower, upper, left_name="lower", right_name="upper")
+        require_less_equal(lower, upper, left_name="lower", right_name="upper")
         object.__setattr__(self, "lower", lower)
         object.__setattr__(self, "upper", upper)
 
         if self.plausible_lower is not None:
             plausible_lower = as_vector(self.plausible_lower, name="plausible_lower")
             require_same_shape(
+                lower,
+                plausible_lower,
+                left_name="lower",
+                right_name="plausible_lower",
+            )
+            require_less_equal(
                 lower,
                 plausible_lower,
                 left_name="lower",
@@ -50,7 +58,21 @@ class Bounds:
                 left_name="lower",
                 right_name="plausible_upper",
             )
+            require_less_equal(
+                plausible_upper,
+                upper,
+                left_name="plausible_upper",
+                right_name="upper",
+            )
             object.__setattr__(self, "plausible_upper", plausible_upper)
+
+        if self.plausible_lower is not None and self.plausible_upper is not None:
+            require_less_equal(
+                self.plausible_lower,
+                self.plausible_upper,
+                left_name="plausible_lower",
+                right_name="plausible_upper",
+            )
 
 
 class BoundedModel(Model, Protocol):
