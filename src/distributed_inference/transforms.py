@@ -8,6 +8,7 @@ from typing import Protocol
 from numpy.typing import ArrayLike
 
 from distributed_inference._validation import FloatArray, as_vector, require_dimension
+from distributed_inference.errors import ModelError
 from distributed_inference.model import (
     EvaluationContext,
     Model,
@@ -38,6 +39,23 @@ class TransformedModel:
 
     base_model: Model
     transform: ParameterTransform
+
+    def __post_init__(self) -> None:
+        if self.base_model.info.input_space != ParameterSpace.CONSTRAINED:
+            msg = (
+                f"Model {self.base_model.info.name!r} uses "
+                f"{self.base_model.info.input_space.value} input space; transforms "
+                "require a constrained-space base model."
+            )
+            raise ModelError(msg)
+
+        if self.base_model.info.dimension != self.transform.constrained_dimension:
+            msg = (
+                f"Model {self.base_model.info.name!r} has dimension "
+                f"{self.base_model.info.dimension}; transform expects constrained "
+                f"dimension {self.transform.constrained_dimension}."
+            )
+            raise ModelError(msg)
 
     @property
     def info(self) -> ModelInfo:

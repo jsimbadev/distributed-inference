@@ -1,5 +1,3 @@
-from typing import cast
-
 import numpy as np
 import pytest
 
@@ -13,12 +11,6 @@ from distributed_inference import (
 )
 from distributed_inference._validation import FloatArray
 from distributed_inference.engines.pyvbmc import as_pyvbmc_log_density, pyvbmc_bounds
-
-
-def test_as_pyvbmc_log_density_returns_callable(
-    gaussian_model: CallableModel,
-) -> None:
-    assert callable(as_pyvbmc_log_density(gaussian_model))
 
 
 def test_as_pyvbmc_log_density_evaluates_model(
@@ -43,7 +35,7 @@ def test_pyvbmc_bounds_requires_bounds() -> None:
     model = CallableModel(name="unbounded", dimension=1, fn=log_density)
 
     with pytest.raises(ModelError):
-        pyvbmc_bounds(cast(BoundedModel, model))
+        pyvbmc_bounds(model)
 
 
 def test_pyvbmc_adapter_requires_unconstrained_model(

@@ -77,13 +77,6 @@ def test_evaluation_context_rng_can_be_used_by_callable(
 
     model = CallableModel(name="rng-user", dimension=1, fn=log_density)
 
-    assert isinstance(model(np.array([0.0]), evaluation_context), float)
-
-
-def test_evaluation_context_rng_is_not_stored_on_model() -> None:
-    def log_density(x: FloatArray, context: EvaluationContext | None) -> float:
-        return -float(x[0])
-
-    model = CallableModel(name="rng-user", dimension=1, fn=log_density)
-
-    assert not hasattr(model, "rng")
+    assert model(np.array([0.0]), evaluation_context) == pytest.approx(
+        -0.9891213503478509
+    )

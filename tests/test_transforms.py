@@ -1,7 +1,12 @@
 import numpy as np
 import pytest
 
-from distributed_inference import CallableModel, ParameterSpace, TransformedModel
+from distributed_inference import (
+    CallableModel,
+    ModelError,
+    ParameterSpace,
+    TransformedModel,
+)
 
 
 def test_transformed_model_uses_unconstrained_space(
@@ -20,6 +25,29 @@ def test_transformed_model_uses_unconstrained_dimension(
     model = TransformedModel(constrained_model, exp_transform)
 
     assert model.info.dimension == 1
+
+
+def test_transformed_model_requires_constrained_base_model(
+    gaussian_model: CallableModel,
+    exp_transform,
+) -> None:
+    with pytest.raises(ModelError):
+        TransformedModel(gaussian_model, exp_transform)
+
+
+def test_transformed_model_requires_matching_constrained_dimension(
+    gaussian_model: CallableModel,
+    exp_transform,
+) -> None:
+    constrained_model = CallableModel(
+        name="positive-vector",
+        dimension=2,
+        fn=gaussian_model.fn,
+        input_space=ParameterSpace.CONSTRAINED,
+    )
+
+    with pytest.raises(ModelError):
+        TransformedModel(constrained_model, exp_transform)
 
 
 def test_transformed_model_evaluates_base_on_constrained_value(

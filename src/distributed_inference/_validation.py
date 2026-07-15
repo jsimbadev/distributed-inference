@@ -32,6 +32,19 @@ def require_same_shape(
         raise ModelError(msg)
 
 
+def require_less_equal(
+    left: FloatArray,
+    right: FloatArray,
+    *,
+    left_name: str,
+    right_name: str,
+) -> None:
+    """Require each element in one vector to be less than or equal to another."""
+    if np.any(left > right):
+        msg = f"{left_name} must be less than or equal to {right_name}."
+        raise ModelError(msg)
+
+
 def require_dimension(value: FloatArray, dimension: int, *, name: str) -> None:
     """Require a vector to have a specific dimension."""
     if value.shape != (dimension,):

@@ -9,4 +9,11 @@ def test_cli_shows_help() -> None:
     result = runner.invoke(app, ["--help"])
 
     assert result.exit_code == 0
+
+
+def test_cli_help_describes_project() -> None:
+    runner = CliRunner()
+
+    result = runner.invoke(app, ["--help"])
+
     assert "Run, collect, and combine repeated inference runs." in result.stdout
