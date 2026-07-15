@@ -10,9 +10,9 @@ value = model(x, context)
 The model receives a parameter vector and an optional evaluation context, then
 returns a scalar log density.
 
-The base model concept does not include bounds, transformations, samplers, job
-submission, or posterior combination. Those are separate concepts layered around
-the model when needed.
+This page defines only the callable model semantics. The `context` argument is
+explained in [Evaluation Contexts](contexts.md). Other model capabilities are
+introduced on their own concept pages when they become necessary.
 
 ## Model Metadata
 
