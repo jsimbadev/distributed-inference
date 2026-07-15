@@ -15,7 +15,7 @@ Install:
 
 From the repository root:
 
-```bash
+```{code-block} bash
 uv sync --group dev
 ```
 
@@ -23,20 +23,20 @@ This installs the package in editable mode with runtime and developer dependenci
 
 ## Install Pre-Commit Hooks
 
-```bash
+```{code-block} bash
 uv run pre-commit install
 ```
 
 For day-to-day use, hooks run automatically on staged files during `git commit`.
 To run the hooks manually against staged files:
 
-```bash
+```{code-block} bash
 uv run pre-commit run
 ```
 
 To run the hooks against the whole repository:
 
-```bash
+```{code-block} bash
 uv run pre-commit run --all-files
 ```
 
@@ -52,26 +52,32 @@ The pre-commit hooks use local commands through `uv run`. This keeps hook behavi
 
 Lint:
 
-```bash
+```{code-block} bash
 uv run ruff check
 ```
 
 Format:
 
-```bash
+```{code-block} bash
 uv run ruff format
 ```
 
 Type check:
 
-```bash
+```{code-block} bash
 uv run ty check
 ```
 
 Tests:
 
-```bash
+```{code-block} bash
 uv run pytest
+```
+
+Docs:
+
+```{code-block} bash
+uv run sphinx-build -b html docs docs/_build/html
 ```
 
 Only the initial scaffold exists at this stage.
@@ -89,9 +95,10 @@ Prefer small, inspectable changes:
 ## Whole project validation
 Run:
 
-```bash
+```{code-block} bash
 uv run pre-commit run --all-files
 uv run pytest
+uv run sphinx-build -b html docs docs/_build/html
 ```
 
 If a check fails, fix the underlying issue rather than weakening the tool configuration.
