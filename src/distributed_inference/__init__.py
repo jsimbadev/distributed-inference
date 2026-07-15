@@ -1,6 +1,7 @@
 """Tools for repeated inference runs on local and distributed infrastructure."""
 
 from distributed_inference.model import (
+    BoundedModel,
     Bounds,
     CallableModel,
     DifferentiableModel,
@@ -12,9 +13,11 @@ from distributed_inference.model import (
     ParameterSpace,
     ParameterTransform,
     TransformedModel,
+    WithBounds,
 )
 
 __all__ = [
+    "BoundedModel",
     "Bounds",
     "CallableModel",
     "DifferentiableModel",
@@ -26,6 +29,7 @@ __all__ = [
     "ParameterSpace",
     "ParameterTransform",
     "TransformedModel",
+    "WithBounds",
     "__version__",
 ]
 

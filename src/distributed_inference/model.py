@@ -106,6 +106,10 @@ class Model(Protocol):
         context: EvaluationContext | None = None,
     ) -> float: ...
 
+
+class BoundedModel(Model, Protocol):
+    """Model with box bounds in its input space."""
+
     def bounds(self) -> Bounds | None: ...
 
 
@@ -143,7 +147,6 @@ class CallableModel:
     dimension: int
     fn: LogDensityFn
     input_space: ParameterSpace = ParameterSpace.UNCONSTRAINED
-    model_bounds: Bounds | None = None
     gradient_fn: GradientFn | None = None
 
     @property
@@ -165,10 +168,6 @@ class CallableModel:
         vector = self._validate_x(x)
         return float(self.fn(vector, context))
 
-    def bounds(self) -> Bounds | None:
-        """Return model bounds in the model input space."""
-        return self.model_bounds
-
     def log_density_and_gradient(
         self,
         x: ArrayLike,
@@ -189,6 +188,31 @@ class CallableModel:
         vector = _as_vector(x, name="x")
         _require_dimension(vector, self.dimension, name="x")
         return vector
+
+
+@dataclass(frozen=True)
+class WithBounds:
+    """Attach bounds to any model by composition."""
+
+    model: Model
+    model_bounds: Bounds
+
+    @property
+    def info(self) -> ModelInfo:
+        """Return static model metadata."""
+        return self.model.info
+
+    def __call__(
+        self,
+        x: ArrayLike,
+        context: EvaluationContext | None = None,
+    ) -> float:
+        """Evaluate the wrapped model."""
+        return self.model(x, context)
+
+    def bounds(self) -> Bounds:
+        """Return bounds in the wrapped model input space."""
+        return self.model_bounds
 
 
 @dataclass(frozen=True)
