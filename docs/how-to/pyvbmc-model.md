@@ -55,3 +55,23 @@ evaluations = result.evaluations
 
 `result.evaluations` is an in-memory tuple of model evaluations recorded through
 the Distributed Inference abstraction, not through user-managed PyVBMC callbacks.
+
+## Use An Explicit Inference Run
+
+For code that should be independent of a concrete engine's convenience API, build
+an `InferenceRun` and pass it to `run_inference`:
+
+```{code-block} python
+from distributed_inference import InferenceRun
+
+run = InferenceRun(
+    model=bounded_model,
+    initial_point=np.array([0.0, 0.0]),
+    record_evaluations=True,
+)
+result = engine.run_inference(run)
+```
+
+This is the shape distributed runners can use later: the runner receives a
+project-level run description and delegates it to an engine without knowing how
+that engine constructs backend objects.
