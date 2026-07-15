@@ -2,9 +2,9 @@ import numpy as np
 import pytest
 
 from distributed_inference import (
+    CallableDifferentiableModel,
     CallableModel,
     EvaluationContext,
-    ModelCapabilityError,
     ModelError,
 )
 from distributed_inference._validation import FloatArray
@@ -31,29 +31,47 @@ def test_callable_model_reports_missing_gradient(
     assert gaussian_model.info.supports_gradient is False
 
 
-def test_callable_model_rejects_missing_gradient(
-    gaussian_model: CallableModel,
-) -> None:
-    with pytest.raises(ModelCapabilityError):
-        gaussian_model.log_density_and_gradient(np.array([1.0, 2.0]))
-
-
 def test_gradient_model_reports_gradient_support(
-    gradient_model: CallableModel,
+    gradient_model: CallableDifferentiableModel,
 ) -> None:
     assert gradient_model.info.supports_gradient is True
 
 
-def test_gradient_model_returns_value(gradient_model: CallableModel) -> None:
+def test_gradient_model_returns_value(
+    gradient_model: CallableDifferentiableModel,
+) -> None:
     value, _ = gradient_model.log_density_and_gradient(np.array([1.0, 2.0]))
 
     assert value == -2.5
 
 
-def test_gradient_model_returns_gradient(gradient_model: CallableModel) -> None:
+def test_gradient_model_returns_gradient(
+    gradient_model: CallableDifferentiableModel,
+) -> None:
     _, gradient = gradient_model.log_density_and_gradient(np.array([1.0, 2.0]))
 
     np.testing.assert_allclose(gradient, np.array([-1.0, -2.0]))
+
+
+def test_gradient_model_rejects_wrong_gradient_dimension() -> None:
+    def log_density(x: FloatArray, context: EvaluationContext | None) -> float:
+        return -float(x[0])
+
+    def gradient(
+        x: FloatArray,
+        context: EvaluationContext | None,
+    ) -> tuple[float, FloatArray]:
+        return -float(x[0]), np.array([0.0, 0.0])
+
+    model = CallableDifferentiableModel(
+        name="bad-gradient",
+        dimension=1,
+        fn=log_density,
+        gradient_fn=gradient,
+    )
+
+    with pytest.raises(ModelError):
+        model.log_density_and_gradient(np.array([1.0]))
 
 
 def test_evaluation_context_is_passed_to_callable(

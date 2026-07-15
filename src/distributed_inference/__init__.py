@@ -12,6 +12,7 @@ from distributed_inference.errors import (
     ModelError,
 )
 from distributed_inference.model import (
+    CallableDifferentiableModel,
     CallableModel,
     DifferentiableModel,
     EvaluationContext,
@@ -27,6 +28,7 @@ from distributed_inference.transforms import (
 __all__ = [
     "BoundedModel",
     "Bounds",
+    "CallableDifferentiableModel",
     "CallableModel",
     "DifferentiableModel",
     "DistributedInferenceError",

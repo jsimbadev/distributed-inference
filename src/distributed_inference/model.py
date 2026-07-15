@@ -11,7 +11,6 @@ import numpy as np
 from numpy.typing import ArrayLike
 
 from distributed_inference._validation import FloatArray, as_vector, require_dimension
-from distributed_inference.errors import ModelCapabilityError
 
 LogDensityFn = Callable[[FloatArray, "EvaluationContext | None"], float]
 GradientFn = Callable[
@@ -82,7 +81,6 @@ class CallableModel:
     dimension: int
     fn: LogDensityFn
     input_space: ParameterSpace = ParameterSpace.UNCONSTRAINED
-    gradient_fn: GradientFn | None = None
 
     @property
     def info(self) -> ModelInfo:
@@ -91,7 +89,40 @@ class CallableModel:
             name=self.name,
             dimension=self.dimension,
             input_space=self.input_space,
-            supports_gradient=self.gradient_fn is not None,
+            supports_gradient=False,
+        )
+
+    def __call__(
+        self,
+        x: ArrayLike,
+        context: EvaluationContext | None = None,
+    ) -> float:
+        """Evaluate the model log density."""
+        vector = self._validate_x(x)
+        return float(self.fn(vector, context))
+
+    def _validate_x(self, x: ArrayLike) -> FloatArray:
+        return _validate_model_vector(x, dimension=self.dimension)
+
+
+@dataclass(frozen=True)
+class CallableDifferentiableModel:
+    """Concrete differentiable model backed by Python callables."""
+
+    name: str
+    dimension: int
+    fn: LogDensityFn
+    gradient_fn: GradientFn
+    input_space: ParameterSpace = ParameterSpace.UNCONSTRAINED
+
+    @property
+    def info(self) -> ModelInfo:
+        """Return static model metadata."""
+        return ModelInfo(
+            name=self.name,
+            dimension=self.dimension,
+            input_space=self.input_space,
+            supports_gradient=True,
         )
 
     def __call__(
@@ -108,11 +139,7 @@ class CallableModel:
         x: ArrayLike,
         context: EvaluationContext | None = None,
     ) -> tuple[float, FloatArray]:
-        """Evaluate log density and gradient when a gradient function exists."""
-        if self.gradient_fn is None:
-            msg = f"Model {self.name!r} does not provide gradients."
-            raise ModelCapabilityError(msg)
-
+        """Evaluate log density and gradient."""
         vector = self._validate_x(x)
         value, gradient = self.gradient_fn(vector, context)
         gradient_vector = as_vector(gradient, name="gradient")
@@ -120,6 +147,10 @@ class CallableModel:
         return float(value), gradient_vector
 
     def _validate_x(self, x: ArrayLike) -> FloatArray:
-        vector = as_vector(x, name="x")
-        require_dimension(vector, self.dimension, name="x")
-        return vector
+        return _validate_model_vector(x, dimension=self.dimension)
+
+
+def _validate_model_vector(x: ArrayLike, *, dimension: int) -> FloatArray:
+    vector = as_vector(x, name="x")
+    require_dimension(vector, dimension, name="x")
+    return vector
