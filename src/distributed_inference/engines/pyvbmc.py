@@ -45,7 +45,7 @@ class PyVBMCOptions:
 
 
 @dataclass(frozen=True)
-class PyVBMCResult(InferenceResult):
+class PyVBMCResult(InferenceResult[Any]):
     """Result returned by the PyVBMC engine."""
 
 
@@ -105,8 +105,8 @@ class PyVBMCEngine:
         posterior, diagnostics = vbmc.optimize()
 
         return PyVBMCResult(
-            model_info=run.model.info,
             engine_name=self.name,
+            run=run,
             posterior=posterior,
             diagnostics=diagnostics,
             evaluations=recorder.evaluations if recorder is not None else (),

@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from typing import Any, Protocol
 
 from distributed_inference._validation import FloatArray
-from distributed_inference.model import EvaluationContext, Model, ModelInfo
+from distributed_inference.model import EvaluationContext, Model
 
 
 @dataclass(frozen=True)
@@ -45,12 +45,12 @@ class InferenceRun:
 
 
 @dataclass(frozen=True)
-class InferenceResult:
+class InferenceResult[PosteriorT]:
     """Engine-neutral result returned by an inference engine."""
 
-    model_info: ModelInfo
     engine_name: str
-    posterior: Any
+    run: InferenceRun
+    posterior: PosteriorT
     diagnostics: Mapping[str, Any]
     evaluations: tuple[ModelEvaluation, ...] = ()
 
@@ -61,4 +61,4 @@ class InferenceEngine(Protocol):
     @property
     def name(self) -> str: ...
 
-    def run_inference(self, run: InferenceRun) -> InferenceResult: ...
+    def run_inference(self, run: InferenceRun) -> InferenceResult[Any]: ...
