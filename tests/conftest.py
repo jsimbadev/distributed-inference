@@ -3,10 +3,12 @@ import pytest
 from numpy.typing import ArrayLike
 
 from distributed_inference import (
+    BoundedModel,
     Bounds,
     CallableModel,
     EvaluationContext,
     ParameterSpace,
+    WithBounds,
 )
 from distributed_inference.model import FloatArray
 
@@ -22,7 +24,7 @@ def gaussian_bounds() -> Bounds:
 
 
 @pytest.fixture
-def gaussian_model(gaussian_bounds: Bounds) -> CallableModel:
+def gaussian_model() -> CallableModel:
     def log_density(x: FloatArray, context: EvaluationContext | None) -> float:
         return -0.5 * float(np.dot(x, x))
 
@@ -30,12 +32,19 @@ def gaussian_model(gaussian_bounds: Bounds) -> CallableModel:
         name="gaussian",
         dimension=2,
         fn=log_density,
-        model_bounds=gaussian_bounds,
     )
 
 
 @pytest.fixture
-def gradient_model(gaussian_bounds: Bounds) -> CallableModel:
+def bounded_gaussian_model(
+    gaussian_model: CallableModel,
+    gaussian_bounds: Bounds,
+) -> BoundedModel:
+    return WithBounds(gaussian_model, gaussian_bounds)
+
+
+@pytest.fixture
+def gradient_model() -> CallableModel:
     def log_density(x: FloatArray, context: EvaluationContext | None) -> float:
         return -0.5 * float(np.dot(x, x))
 
@@ -49,7 +58,6 @@ def gradient_model(gaussian_bounds: Bounds) -> CallableModel:
         name="gradient-gaussian",
         dimension=2,
         fn=log_density,
-        model_bounds=gaussian_bounds,
         gradient_fn=gradient,
     )
 

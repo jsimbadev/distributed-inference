@@ -45,6 +45,20 @@ Euclidean coordinates.
 Inference engines usually want one of these spaces explicitly. PyVBMC is
 adapted through an unconstrained callable plus bounds.
 
+## Optional Bounds
+
+Bounds are an optional model capability, not part of the base model protocol.
+Many inference engines only need a callable log density and a dimension.
+
+When an engine requires bounds, attach them by composition:
+
+```{code-block} python
+bounded_model = WithBounds(model, bounds)
+```
+
+This keeps the base callable abstraction small while allowing engines such as
+PyVBMC to request a `BoundedModel` capability explicitly.
+
 ## Transformed Models
 
 Use `TransformedModel` to expose a constrained model in unconstrained
@@ -54,9 +68,9 @@ coordinates. The transformed model evaluates:
 base_model(to_constrained(z)) + log_abs_det_jacobian(z)
 ```
 
-Automatic bound transformation is not part of the first implementation.
-Transformed models require explicit bounds in their own input space when an
-engine needs bounds.
+Automatic bound transformation is not part of the first implementation. If an
+engine needs bounds for a transformed model, attach explicit bounds in the
+transformed model input space.
 
 ## Optional Gradients
 
@@ -73,7 +87,8 @@ PyVBMC receives a plain callable:
 
 ```{code-block} python
 log_density = as_pyvbmc_log_density(model, context)
-bounds = pyvbmc_bounds(model)
+bounds = pyvbmc_bounds(bounded_model)
 ```
 
-The adapter requires the model input space to be unconstrained.
+The adapter requires unconstrained model input space. Bound extraction requires
+the separate bounded-model capability.

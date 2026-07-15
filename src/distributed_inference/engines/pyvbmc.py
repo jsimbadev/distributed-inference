@@ -8,6 +8,7 @@ import numpy as np
 from numpy.typing import ArrayLike
 
 from distributed_inference.model import (
+    BoundedModel,
     Bounds,
     EvaluationContext,
     Model,
@@ -29,9 +30,13 @@ def as_pyvbmc_log_density(
     return log_density
 
 
-def pyvbmc_bounds(model: Model) -> Bounds:
+def pyvbmc_bounds(model: BoundedModel) -> Bounds:
     """Return bounds required by PyVBMC for an unconstrained model."""
     _require_unconstrained(model)
+    if not hasattr(model, "bounds"):
+        msg = f"Model {model.info.name!r} does not define PyVBMC bounds."
+        raise ModelError(msg)
+
     bounds = model.bounds()
     if bounds is None:
         msg = f"Model {model.info.name!r} does not define PyVBMC bounds."

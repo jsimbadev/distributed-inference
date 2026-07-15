@@ -9,6 +9,7 @@ from distributed_inference import (
     ModelError,
     ParameterSpace,
     TransformedModel,
+    WithBounds,
 )
 from distributed_inference.model import FloatArray
 
@@ -21,11 +22,17 @@ def test_callable_model_exposes_model_info(gaussian_model: CallableModel) -> Non
     assert gaussian_model.info.name == "gaussian"
 
 
-def test_callable_model_exposes_bounds(
+def test_bounded_model_exposes_bounds(
     gaussian_model: CallableModel,
     gaussian_bounds: Bounds,
 ) -> None:
-    assert gaussian_model.bounds() == gaussian_bounds
+    assert WithBounds(gaussian_model, gaussian_bounds).bounds() == gaussian_bounds
+
+
+def test_callable_model_does_not_require_bounds(
+    gaussian_model: CallableModel,
+) -> None:
+    assert not hasattr(gaussian_model, "bounds")
 
 
 def test_callable_model_rejects_wrong_dimension(

@@ -1,7 +1,16 @@
+from typing import cast
+
 import numpy as np
 import pytest
 
-from distributed_inference import Bounds, CallableModel, ModelError, ParameterSpace
+from distributed_inference import (
+    BoundedModel,
+    Bounds,
+    CallableModel,
+    ModelError,
+    ParameterSpace,
+    WithBounds,
+)
 from distributed_inference.engines.pyvbmc import as_pyvbmc_log_density, pyvbmc_bounds
 from distributed_inference.model import FloatArray
 
@@ -21,10 +30,10 @@ def test_as_pyvbmc_log_density_evaluates_model(
 
 
 def test_pyvbmc_bounds_returns_bounds(
-    gaussian_model: CallableModel,
+    bounded_gaussian_model: BoundedModel,
     gaussian_bounds: Bounds,
 ) -> None:
-    assert pyvbmc_bounds(gaussian_model) == gaussian_bounds
+    assert pyvbmc_bounds(bounded_gaussian_model) == gaussian_bounds
 
 
 def test_pyvbmc_bounds_requires_bounds() -> None:
@@ -34,7 +43,7 @@ def test_pyvbmc_bounds_requires_bounds() -> None:
     model = CallableModel(name="unbounded", dimension=1, fn=log_density)
 
     with pytest.raises(ModelError):
-        pyvbmc_bounds(model)
+        pyvbmc_bounds(cast(BoundedModel, model))
 
 
 def test_pyvbmc_adapter_requires_unconstrained_model(
@@ -48,11 +57,14 @@ def test_pyvbmc_bounds_requires_unconstrained_model() -> None:
     def log_density(x: FloatArray, context) -> float:
         return -float(x[0])
 
-    model = CallableModel(
-        name="constrained",
-        dimension=1,
-        fn=log_density,
-        input_space=ParameterSpace.CONSTRAINED,
+    model = WithBounds(
+        CallableModel(
+            name="constrained",
+            dimension=1,
+            fn=log_density,
+            input_space=ParameterSpace.CONSTRAINED,
+        ),
+        Bounds(lower=np.array([0.0]), upper=np.array([10.0])),
     )
 
     with pytest.raises(ModelError):
