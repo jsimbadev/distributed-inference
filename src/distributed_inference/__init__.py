@@ -6,6 +6,13 @@ from distributed_inference.bounds import (
     WithBounds,
     bounds_mapping,
 )
+from distributed_inference.engines import (
+    EvaluationRecorder,
+    InferenceEngine,
+    InferenceResult,
+    InferenceRun,
+    ModelEvaluation,
+)
 from distributed_inference.errors import (
     DistributedInferenceError,
     ModelCapabilityError,
@@ -33,9 +40,14 @@ __all__ = [
     "DifferentiableModel",
     "DistributedInferenceError",
     "EvaluationContext",
+    "EvaluationRecorder",
+    "InferenceEngine",
+    "InferenceResult",
+    "InferenceRun",
     "Model",
     "ModelCapabilityError",
     "ModelError",
+    "ModelEvaluation",
     "ModelInfo",
     "ParameterSpace",
     "ParameterTransform",
