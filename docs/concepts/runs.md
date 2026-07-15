@@ -55,16 +55,32 @@ objects remain implementation details.
 posterior = result.posterior
 diagnostics = result.diagnostics
 evaluations = result.evaluations
+context = result.run.context
 ```
 
 `posterior` is intentionally generic at this stage. Different engines represent
 posterior approximations differently. The result object keeps that engine-owned
 object behind a stable project-level wrapper while exposing common metadata:
 
-- `model_info`: the model metadata used for the run.
 - `engine_name`: the engine that produced the result.
+- `run`: the exact project-level run object that was executed.
 - `diagnostics`: engine diagnostics as a mapping.
 - `evaluations`: optional in-memory model evaluations.
+
+Keeping `run` on the result means local code can inspect the model metadata,
+initial point, and execution context without a parallel metadata API:
+
+```{code-block} python
+model_info = result.run.model.info
+initial_point = result.run.initial_point
+context = result.run.context
+```
+
+The context is exposed as the original in-memory object. That is useful for
+local execution, but it is not a persistence format. Future run manifests should
+store explicit serializable metadata rather than blindly serializing the whole
+context, because a context may contain random number generators, cache handles,
+worker resources, or other process-local objects.
 
 ## Evaluation Recording
 

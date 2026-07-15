@@ -51,6 +51,7 @@ The result keeps PyVBMC's posterior object behind the project-level result:
 posterior = result.posterior
 diagnostics = result.diagnostics
 evaluations = result.evaluations
+model_info = result.run.model.info
 ```
 
 `result.evaluations` is an in-memory tuple of model evaluations recorded through
@@ -62,14 +63,18 @@ For code that should be independent of a concrete engine's convenience API, buil
 an `InferenceRun` and pass it to `run_inference`:
 
 ```{code-block} python
-from distributed_inference import InferenceRun
+from distributed_inference import EvaluationContext, InferenceRun
+
+context = EvaluationContext(run_id="local-smoke-run")
 
 run = InferenceRun(
     model=bounded_model,
     initial_point=np.array([0.0, 0.0]),
+    context=context,
     record_evaluations=True,
 )
 result = engine.run_inference(run)
+same_context = result.run.context
 ```
 
 This is the shape distributed runners can use later: the runner receives a
