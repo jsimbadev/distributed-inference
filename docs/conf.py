@@ -20,4 +20,6 @@ source_suffix = {
 }
 
 html_theme = "furo"
+pygments_style = "friendly"
+pygments_dark_style = "monokai"
 autodoc_typehints = "description"
