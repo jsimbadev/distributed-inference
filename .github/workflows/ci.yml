@@ -15,38 +15,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  refresh-lock:
-    name: Refresh lockfile
-    if: github.event_name == 'pull_request' && github.head_ref == 'agent/add-ci-quality-tests-docs'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - name: Check out feature branch
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.head_ref }}
-
-      - name: Install uv and Python
-        uses: astral-sh/setup-uv@v6
-        with:
-          python-version: "3.11"
-
-      - name: Regenerate lockfile
-        run: uv lock
-
-      - name: Commit refreshed lockfile
-        run: |
-          if git diff --quiet -- uv.lock; then
-            echo "Lockfile is already current."
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add uv.lock
-          git commit -m "chore: refresh lockfile for Python 3.11"
-          git push origin HEAD:${{ github.head_ref }}
-
   quality:
     name: Quality
     runs-on: ubuntu-latest
@@ -62,7 +30,7 @@ jobs:
           python-version: "3.11"
 
       - name: Install development environment
-        run: uv sync --group dev --python 3.11
+        run: uv sync --locked --group dev --python 3.11
 
       - name: Run pre-commit checks
         run: uv run pre-commit run --all-files
@@ -86,7 +54,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install development environment
-        run: uv sync --group dev --python ${{ matrix.python-version }}
+        run: uv sync --locked --group dev --python ${{ matrix.python-version }}
 
       - name: Run unit tests
         run: uv run pytest
@@ -106,7 +74,7 @@ jobs:
           python-version: "3.11"
 
       - name: Install documentation environment
-        run: uv sync --group dev --python 3.11
+        run: uv sync --locked --group dev --python 3.11
 
       - name: Build documentation
         run: uv run sphinx-build -W --keep-going -b html docs docs/_build/html
