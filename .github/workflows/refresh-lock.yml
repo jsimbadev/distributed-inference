@@ -2,7 +2,7 @@ name: Refresh lockfile
 
 on:
   push:
-    branches: [agent/add-ci-quality-tests-docs]
+    branches: ["agent/**"]
 
 permissions:
   contents: write
