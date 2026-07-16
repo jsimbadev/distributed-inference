@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
-from typing import Any, Protocol
+from typing import Any, Protocol, TypeAlias
 
 import numpy as np
 from numpy.typing import ArrayLike
@@ -34,7 +34,7 @@ class _PyVBMCInstance(Protocol):
     def optimize(self) -> tuple[Any, Mapping[str, Any]]: ...
 
 
-type PyVBMCFactory = Callable[..., _PyVBMCInstance]
+PyVBMCFactory: TypeAlias = Callable[..., _PyVBMCInstance]
 
 
 @dataclass(frozen=True)
