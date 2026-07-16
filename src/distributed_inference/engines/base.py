@@ -4,10 +4,12 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass, field
-from typing import Any, Protocol
+from typing import Any, Generic, Protocol, TypeVar
 
 from distributed_inference._validation import FloatArray
 from distributed_inference.model import EvaluationContext, Model
+
+PosteriorT = TypeVar("PosteriorT")
 
 
 @dataclass(frozen=True)
@@ -45,7 +47,7 @@ class InferenceRun:
 
 
 @dataclass(frozen=True)
-class InferenceResult[PosteriorT]:
+class InferenceResult(Generic[PosteriorT]):
     """Engine-neutral result returned by an inference engine."""
 
     engine_name: str
