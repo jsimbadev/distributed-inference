@@ -11,8 +11,13 @@ import numpy as np
 import pytest
 
 from distributed_inference import EvaluationContext
+from distributed_inference.errors import ModelError
 from distributed_inference.model import Model
-from distributed_inference.persistence.models import ModelBuilder, ModelSpec
+from distributed_inference.persistence.models import (
+    ModelBuilder,
+    ModelSpec,
+    PythonCallableSpec,
+)
 from distributed_inference.persistence.random_streams import RandomStreamSpec
 
 TEMPORARY_MODEL_SOURCE = """
@@ -111,6 +116,14 @@ def test_model_spec_manifest_is_json_serializable(
     assert isinstance(json.dumps(payload), str)
 
 
+def test_model_spec_round_trips_through_json(
+    prng_model_spec: ModelSpec,
+) -> None:
+    payload = json.loads(json.dumps(prng_model_spec.to_manifest()))
+
+    assert ModelSpec.from_manifest(payload).to_manifest() == payload
+
+
 def test_rehydrated_model_matches_raw_callable_evaluation(
     prng_model_builder: ModelBuilder,
     prng_model_config: Mapping[str, Any],
@@ -131,6 +144,42 @@ def test_rehydrated_model_requires_runtime_random_stream(
 
     with pytest.raises(RuntimeError):
         model(np.array([0.0]), EvaluationContext())
+
+
+def test_model_spec_rejects_missing_source_file(
+    temporary_project: Path,
+) -> None:
+    spec = ModelSpec(
+        callable=PythonCallableSpec(
+            module="missing_model",
+            qualname="build_model",
+            project_root=str(temporary_project),
+            source_path="missing_model.py",
+        ),
+        version="1",
+        config={},
+    )
+
+    with pytest.raises(ModelError):
+        spec.to_model()
+
+
+def test_model_spec_rejects_missing_qualname(
+    temporary_project: Path,
+) -> None:
+    spec = ModelSpec(
+        callable=PythonCallableSpec(
+            module="temporary_model",
+            qualname="missing_builder",
+            project_root=str(temporary_project),
+            source_path="temporary_model.py",
+        ),
+        version="1",
+        config={},
+    )
+
+    with pytest.raises(ModelError):
+        spec.to_model()
 
 
 def _evaluate_with_seed(model: Model, *, seed: int) -> float:

@@ -7,6 +7,8 @@ from distributed_inference.bounds import (
     bounds_mapping,
 )
 from distributed_inference.engines import (
+    DummyInferenceEngine,
+    DummyInferenceResult,
     EvaluationRecorder,
     InferenceEngine,
     InferenceResult,
@@ -15,9 +17,19 @@ from distributed_inference.engines import (
 )
 from distributed_inference.errors import (
     DistributedInferenceError,
+    ExecutionError,
     ManifestError,
     ModelCapabilityError,
     ModelError,
+)
+from distributed_inference.execution import (
+    ExecutedInference,
+    ExecutionAttempt,
+    ExecutionBackend,
+    ExecutionIdentity,
+    ExecutionRecord,
+    ExecutionSpec,
+    LocalExecutionBackend,
 )
 from distributed_inference.model import (
     CallableDifferentiableModel,
@@ -40,11 +52,21 @@ __all__ = [
     "CallableModel",
     "DifferentiableModel",
     "DistributedInferenceError",
+    "DummyInferenceEngine",
+    "DummyInferenceResult",
     "EvaluationContext",
     "EvaluationRecorder",
+    "ExecutedInference",
+    "ExecutionAttempt",
+    "ExecutionBackend",
+    "ExecutionError",
+    "ExecutionIdentity",
+    "ExecutionRecord",
+    "ExecutionSpec",
     "InferenceEngine",
     "InferenceResult",
     "InferenceRun",
+    "LocalExecutionBackend",
     "ManifestError",
     "Model",
     "ModelCapabilityError",

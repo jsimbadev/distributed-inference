@@ -32,6 +32,14 @@ def test_random_stream_spec_manifest_is_json_serializable(
     assert isinstance(json.dumps(payload), str)
 
 
+def test_random_stream_spec_round_trips_through_json(
+    random_stream_spec: RandomStreamSpec,
+) -> None:
+    payload = json.loads(json.dumps(random_stream_spec.to_manifest()))
+
+    assert RandomStreamSpec.from_manifest(payload).to_manifest() == payload
+
+
 def test_random_stream_spec_manifest_does_not_serialize_live_state(
     random_stream_spec: RandomStreamSpec,
 ) -> None:
