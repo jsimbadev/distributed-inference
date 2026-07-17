@@ -1,24 +1,31 @@
+import importlib.util
 import json
-from collections.abc import Mapping
+import sys
+from collections.abc import Iterator, Mapping
 from pathlib import Path
+from tempfile import TemporaryDirectory
+from types import ModuleType
 from typing import Any
 
 import numpy as np
 import pytest
 
-from distributed_inference import CallableModel, EvaluationContext
-from distributed_inference._validation import FloatArray
-from distributed_inference.persistence.models import ModelSpec
+from distributed_inference import EvaluationContext
+from distributed_inference.model import Model
+from distributed_inference.persistence.models import ModelBuilder, ModelSpec
 from distributed_inference.persistence.random_streams import RandomStreamSpec
 
-PROJECT_ROOT = Path.cwd()
+TEMPORARY_MODEL_SOURCE = """
+import numpy as np
+
+from distributed_inference import CallableModel
 
 
-def _build_prng_model(config: Mapping[str, Any]) -> CallableModel:
+def build_prng_model(config):
     dimension = int(config["dimension"])
     noise_scale = float(config["noise_scale"])
 
-    def log_density(x: FloatArray, context: EvaluationContext | None) -> float:
+    def log_density(x, context):
         if context is None or context.rng is None:
             msg = "prng-model requires an EvaluationContext with an rng"
             raise RuntimeError(msg)
@@ -27,18 +34,47 @@ def _build_prng_model(config: Mapping[str, Any]) -> CallableModel:
         return deterministic_part + stochastic_part
 
     return CallableModel(
-        name="prng-gaussian",
+        name="temporary-prng-gaussian",
         dimension=dimension,
         fn=log_density,
     )
+"""
 
 
 @pytest.fixture
-def prng_model_spec() -> ModelSpec:
+def temporary_project() -> Iterator[Path]:
+    with TemporaryDirectory() as directory:
+        project_root = Path(directory)
+        (project_root / "temporary_model.py").write_text(
+            TEMPORARY_MODEL_SOURCE,
+            encoding="utf-8",
+        )
+        yield project_root
+
+
+@pytest.fixture
+def prng_model_builder(temporary_project: Path) -> Iterator[ModelBuilder]:
+    module = _load_module(temporary_project / "temporary_model.py")
+    sys.modules[module.__name__] = module
+    yield module.build_prng_model
+    sys.modules.pop(module.__name__, None)
+
+
+@pytest.fixture
+def prng_model_config() -> Mapping[str, Any]:
+    return {"dimension": 1, "noise_scale": 0.25}
+
+
+@pytest.fixture
+def prng_model_spec(
+    temporary_project: Path,
+    prng_model_builder: ModelBuilder,
+    prng_model_config: Mapping[str, Any],
+) -> ModelSpec:
     return ModelSpec.from_callable(
-        _build_prng_model,
-        config={"dimension": 1, "noise_scale": 0.25},
-        project_root=PROJECT_ROOT,
+        prng_model_builder,
+        config=prng_model_config,
+        project_root=temporary_project,
         version="1",
     )
 
@@ -48,7 +84,7 @@ def test_model_spec_captures_importable_callable(
 ) -> None:
     payload = prng_model_spec.to_manifest()
 
-    assert payload["callable"]["module"] == _build_prng_model.__module__
+    assert payload["callable"]["module"] == "temporary_model"
 
 
 def test_model_spec_captures_callable_qualname(
@@ -56,7 +92,7 @@ def test_model_spec_captures_callable_qualname(
 ) -> None:
     payload = prng_model_spec.to_manifest()
 
-    assert payload["callable"]["qualname"] == "_build_prng_model"
+    assert payload["callable"]["qualname"] == "build_prng_model"
 
 
 def test_model_spec_captures_project_relative_source_path(
@@ -64,7 +100,7 @@ def test_model_spec_captures_project_relative_source_path(
 ) -> None:
     payload = prng_model_spec.to_manifest()
 
-    assert payload["callable"]["source_path"] == "tests/test_persistence_models.py"
+    assert payload["callable"]["source_path"] == "temporary_model.py"
 
 
 def test_model_spec_manifest_is_json_serializable(
@@ -75,22 +111,16 @@ def test_model_spec_manifest_is_json_serializable(
     assert isinstance(json.dumps(payload), str)
 
 
-def test_rehydrated_model_uses_context_random_stream(
+def test_rehydrated_model_matches_raw_callable_evaluation(
+    prng_model_builder: ModelBuilder,
+    prng_model_config: Mapping[str, Any],
     prng_model_spec: ModelSpec,
 ) -> None:
-    model = prng_model_spec.to_model()
-    same_model = prng_model_spec.to_model()
-    stream = RandomStreamSpec(
-        algorithm="numpy.pcg64",
-        seed=42,
-        stream_id="replicate-0",
-        schema_version="1",
-    )
-    context = EvaluationContext(rng=stream.to_generator())
-    same_context = EvaluationContext(rng=stream.to_generator())
+    raw_model = prng_model_builder(prng_model_config)
+    hydrated_model = prng_model_spec.to_model()
 
-    assert model(np.array([0.0]), context) == pytest.approx(
-        same_model(np.array([0.0]), same_context)
+    assert _evaluate_with_seed(hydrated_model, seed=42) == pytest.approx(
+        _evaluate_with_seed(raw_model, seed=42)
     )
 
 
@@ -101,3 +131,24 @@ def test_rehydrated_model_requires_runtime_random_stream(
 
     with pytest.raises(RuntimeError):
         model(np.array([0.0]), EvaluationContext())
+
+
+def _evaluate_with_seed(model: Model, *, seed: int) -> float:
+    stream = RandomStreamSpec(
+        algorithm="numpy.pcg64",
+        seed=seed,
+        stream_id="replicate-0",
+        schema_version="1",
+    )
+    context = EvaluationContext(rng=stream.to_generator())
+    return model(np.array([0.0]), context)
+
+
+def _load_module(path: Path) -> ModuleType:
+    spec = importlib.util.spec_from_file_location("temporary_model", path)
+    if spec is None or spec.loader is None:
+        msg = f"Could not load module from {path}."
+        raise RuntimeError(msg)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
