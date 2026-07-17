@@ -47,7 +47,7 @@ The hooks currently run:
 - `ruff format`;
 - `ty check`.
 
-The pre-commit hooks use local commands through `uv run`. This keeps hook behavior aligned with the project environment instead of relying on separately managed hook environments. Continuous integration invokes the same pre-commit entry point, so local and remote quality checks share one configuration.
+The pre-commit hooks use local commands through `uv run`. This keeps hook behavior aligned with the project environment instead of relying on separately managed hook environments. Continuous integration invokes Ruff and `ty` directly with the same project configuration while limiting quality checks to changed Python files.
 
 ## Run Hygiene Checks Directly
 
@@ -78,20 +78,20 @@ uv run pytest
 Docs:
 
 ```{code-block} bash
-uv run sphinx-build -W --keep-going -b html docs docs/_build/html
+uv run sphinx-build -W -b html docs docs/_build/html
 ```
 
 Only the initial scaffold exists at this stage.
 
 ## Continuous Integration
 
-GitHub Actions runs independent jobs for:
+Continuous integration protects the default branch by requiring each proposed change to satisfy three independent guarantees:
 
-- the complete pre-commit quality stack;
-- unit tests on every supported Python version;
-- a warning-as-error Sphinx documentation build.
+- changed Python files conform to the repository's Ruff and `ty` configuration;
+- the unit-test suite passes on every supported Python version;
+- the documentation builds without warnings.
 
-These jobs run in parallel where possible. Pull requests should be considered ready only when all required CI checks pass.
+A pull request is ready only when all required guarantees hold. Keeping the checks independent makes failures attributable and allows unrelated validation to proceed in parallel.
 
 ## Development Principles
 
@@ -110,7 +110,7 @@ Run:
 ```{code-block} bash
 uv run pre-commit run --all-files
 uv run pytest
-uv run sphinx-build -W --keep-going -b html docs docs/_build/html
+uv run sphinx-build -W -b html docs docs/_build/html
 ```
 
 If a check fails, fix the underlying issue rather than weakening the tool configuration.
