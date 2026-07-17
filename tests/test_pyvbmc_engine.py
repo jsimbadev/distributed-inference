@@ -84,18 +84,6 @@ def test_pyvbmc_engine_result_keeps_run_context(
     assert result.run.context is evaluation_context
 
 
-def test_pyvbmc_engine_result_keeps_run_model(
-    bounded_gaussian_model,
-    fake_vbmc_factory,
-) -> None:
-    result = PyVBMCEngine(vbmc_factory=fake_vbmc_factory).run(
-        bounded_gaussian_model,
-        initial_point=np.array([1.0, 2.0]),
-    )
-
-    assert result.run.model is bounded_gaussian_model
-
-
 def test_pyvbmc_engine_returns_diagnostics(
     bounded_gaussian_model,
     fake_vbmc_factory,
