@@ -4,9 +4,12 @@ from __future__ import annotations
 
 import hashlib
 import json
+from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+
+import numpy as np
 
 from distributed_inference.engines.base import InferenceResult, ModelEvaluation
 from distributed_inference.errors import ManifestError
@@ -199,10 +202,24 @@ def _evaluations_payload(
 
 def _json_bytes(payload: Any) -> bytes:
     try:
-        return json.dumps(payload, indent=2, sort_keys=True).encode("utf-8")
+        return json.dumps(_jsonable(payload), indent=2, sort_keys=True).encode("utf-8")
     except TypeError as exc:
         msg = "Persistence payload contains non-serializable values."
         raise ManifestError(msg) from exc
+
+
+def _jsonable(value: Any) -> Any:
+    if isinstance(value, np.ndarray):
+        return value.tolist()
+    if isinstance(value, np.generic):
+        return value.item()
+    if isinstance(value, Mapping):
+        return {str(key): _jsonable(item) for key, item in value.items()}
+    if isinstance(value, list | tuple):
+        return [_jsonable(item) for item in value]
+    if isinstance(value, Path):
+        return str(value)
+    return value
 
 
 def _sha256(data: bytes) -> str:

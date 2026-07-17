@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
+from importlib.metadata import PackageNotFoundError, version
 from typing import Any, Protocol, TypeAlias
 
 import numpy as np
@@ -60,6 +61,19 @@ class PyVBMCEngine:
     def name(self) -> str:
         """Return the engine name."""
         return "pyvbmc"
+
+    @property
+    def version(self) -> str:
+        """Return the installed PyVBMC package version."""
+        try:
+            return version("pyvbmc")
+        except PackageNotFoundError:
+            return "unknown"
+
+    @property
+    def config(self) -> Mapping[str, Any]:
+        """Return the serializable PyVBMC option configuration."""
+        return dict(self.options.raw_options)
 
     def run(
         self,
