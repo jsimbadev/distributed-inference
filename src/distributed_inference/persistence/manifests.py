@@ -102,9 +102,7 @@ class ResultManifestMetadata:
     """Implementation-owned metadata required to persist an inference result."""
 
     schema_version: str
-    workflow_id: str
-    replicate_id: str
-    attempt_id: str
+    attempt_number: int
     model: ModelSpec
     target: TargetSpec
     engine: EngineSpec
@@ -121,10 +119,9 @@ class ResultManifest:
     """Serializable manifest for a completed inference result."""
 
     schema_version: str
-    workflow_id: str
+    name: str
     run_id: str
-    replicate_id: str
-    attempt_id: str
+    attempt_number: int
     model: ModelSpec
     target: TargetSpec
     engine: EngineSpec
@@ -151,10 +148,9 @@ class ResultManifest:
             raise ManifestError(msg)
         return cls(
             schema_version=metadata.schema_version,
-            workflow_id=metadata.workflow_id,
+            name=result.run.name,
             run_id=context.run_id,
-            replicate_id=metadata.replicate_id,
-            attempt_id=metadata.attempt_id,
+            attempt_number=metadata.attempt_number,
             model=metadata.model,
             target=metadata.target,
             engine=metadata.engine,
@@ -173,10 +169,9 @@ class ResultManifest:
         return {
             "schema_version": self.schema_version,
             "identity": {
-                "workflow_id": self.workflow_id,
+                "name": self.name,
                 "run_id": self.run_id,
-                "replicate_id": self.replicate_id,
-                "attempt_id": self.attempt_id,
+                "attempt_number": self.attempt_number,
             },
             "model": self.model.to_manifest(),
             "target": self.target.to_manifest(),
@@ -238,10 +233,9 @@ class ResultManifest:
             raise ManifestError(msg)
         return cls(
             schema_version=str(payload["schema_version"]),
-            workflow_id=str(identity["workflow_id"]),
+            name=str(identity["name"]),
             run_id=str(identity["run_id"]),
-            replicate_id=str(identity["replicate_id"]),
-            attempt_id=str(identity["attempt_id"]),
+            attempt_number=int(identity["attempt_number"]),
             model=ModelSpec.from_manifest(model),
             target=TargetSpec.from_manifest(target),
             engine=EngineSpec.from_manifest(engine),

@@ -56,6 +56,7 @@ def inference_run() -> InferenceRun:
         cache={"runtime-only": object()},
     )
     return InferenceRun(
+        name="gaussian-smoke",
         model=model,
         initial_point=np.array([0.0]),
         context=context,
@@ -101,7 +102,7 @@ def random_stream_spec() -> RandomStreamSpec:
     return RandomStreamSpec(
         algorithm="numpy.pcg64",
         seed=42,
-        stream_id="replicate-000",
+        stream_id="stream-000",
         schema_version="1",
     )
 
@@ -121,8 +122,8 @@ def artifact_references() -> dict[str, ArtifactReference]:
 def checkpoint_references() -> dict[str, ArtifactReference]:
     return {
         "checkpoint": ArtifactReference(
-            uri="checkpoints/engine-state.msgpack",
-            media_type="application/msgpack",
+            uri="checkpoints/engine-state.json",
+            media_type="application/json",
             checksum="sha256:checkpoint",
         ),
     }
@@ -139,9 +140,7 @@ def manifest_metadata(
 ) -> ResultManifestMetadata:
     return ResultManifestMetadata(
         schema_version="1",
-        workflow_id="workflow-001",
-        replicate_id="replicate-000",
-        attempt_id="attempt-000",
+        attempt_number=1,
         model=model_spec,
         target=target_spec,
         engine=engine_spec,
@@ -168,6 +167,7 @@ def unidentified_inference_result(
 ) -> FakeInferenceResult:
     model = CallableModel(name="gaussian", dimension=1, fn=_log_density)
     run = InferenceRun(
+        name="gaussian-smoke",
         model=model,
         initial_point=np.array([0.0]),
         context=EvaluationContext(),
@@ -197,16 +197,15 @@ def test_result_manifest_requires_run_identity(
         ResultManifest.from_result(unidentified_inference_result)
 
 
-def test_result_manifest_keeps_run_replicate_and_attempt_distinct(
+def test_result_manifest_keeps_run_and_attempt_identity_distinct(
     result_manifest: ResultManifest,
 ) -> None:
     payload = result_manifest.to_manifest()
 
     assert payload["identity"] == {
-        "workflow_id": "workflow-001",
+        "name": "gaussian-smoke",
         "run_id": "run-001",
-        "replicate_id": "replicate-000",
-        "attempt_id": "attempt-000",
+        "attempt_number": 1,
     }
 
 
@@ -240,7 +239,7 @@ def test_result_manifest_references_checkpoint_separately(
     payload = result_manifest.to_manifest()
     checkpoint = payload["checkpoints"]["checkpoint"]
 
-    assert checkpoint["uri"] == "checkpoints/engine-state.msgpack"
+    assert checkpoint["uri"] == "checkpoints/engine-state.json"
 
 
 def test_result_manifest_keeps_checkpoint_out_of_completed_artifacts(

@@ -10,7 +10,7 @@ def random_stream_spec() -> RandomStreamSpec:
     return RandomStreamSpec(
         algorithm="numpy.pcg64",
         seed=42,
-        stream_id="replicate-0",
+        stream_id="stream-0",
         schema_version="1",
     )
 

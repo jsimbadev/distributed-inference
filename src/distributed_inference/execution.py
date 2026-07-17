@@ -53,30 +53,31 @@ class ExecutionSpec:
 class ExecutionIdentity:
     """Serializable identity for a backend execution of a run."""
 
+    name: str
     run_id: str
 
     def to_manifest(self) -> dict[str, str]:
         """Return a serializable execution identity."""
-        return {"run_id": self.run_id}
+        return {"name": self.name, "run_id": self.run_id}
 
     @classmethod
     def from_manifest(cls, payload: Mapping[str, Any]) -> ExecutionIdentity:
         """Rehydrate an execution identity from a manifest payload."""
-        return cls(run_id=str(payload["run_id"]))
+        return cls(name=str(payload["name"]), run_id=str(payload["run_id"]))
 
 
 @dataclass(frozen=True)
 class ExecutionAttempt:
     """Serializable provenance for one infrastructure execution attempt."""
 
-    attempt_id: str
+    attempt_number: int
     started_at: str | None = None
     completed_at: str | None = None
 
-    def to_manifest(self) -> dict[str, str | None]:
+    def to_manifest(self) -> dict[str, int | str | None]:
         """Return a serializable execution attempt."""
         return {
-            "attempt_id": self.attempt_id,
+            "attempt_number": self.attempt_number,
             "started_at": self.started_at,
             "completed_at": self.completed_at,
         }
@@ -85,7 +86,7 @@ class ExecutionAttempt:
     def from_manifest(cls, payload: Mapping[str, Any]) -> ExecutionAttempt:
         """Rehydrate an execution attempt from a manifest payload."""
         return cls(
-            attempt_id=str(payload["attempt_id"]),
+            attempt_number=int(payload["attempt_number"]),
             started_at=_optional_str(payload.get("started_at")),
             completed_at=_optional_str(payload.get("completed_at")),
         )
@@ -158,7 +159,7 @@ class ExecutionBackend(Protocol):
         run: InferenceRun,
         engine: InferenceEngine,
         *,
-        attempt_id: str | None = None,
+        attempt_number: int = 1,
         metadata: Mapping[str, Any] | None = None,
     ) -> ExecutedInference: ...
 
@@ -180,11 +181,11 @@ class LocalExecutionBackend:
         run: InferenceRun,
         engine: InferenceEngine,
         *,
-        attempt_id: str | None = None,
+        attempt_number: int = 1,
         metadata: Mapping[str, Any] | None = None,
     ) -> ExecutedInference:
         """Execute an inference run synchronously in the current process."""
-        resolved_attempt_id = attempt_id or str(uuid4())
+        _require_positive_attempt_number(attempt_number)
         started_at = _utc_timestamp()
         record_metadata = dict(metadata or {})
         try:
@@ -193,7 +194,7 @@ class LocalExecutionBackend:
             completed_at = _utc_timestamp()
             failed_record = self._record(
                 run=run,
-                attempt_id=resolved_attempt_id,
+                attempt_number=attempt_number,
                 status="failed",
                 started_at=started_at,
                 completed_at=completed_at,
@@ -211,7 +212,7 @@ class LocalExecutionBackend:
         completed_at = _utc_timestamp()
         record = self._record(
             run=run,
-            attempt_id=resolved_attempt_id,
+            attempt_number=attempt_number,
             status="completed",
             started_at=started_at,
             completed_at=completed_at,
@@ -223,7 +224,7 @@ class LocalExecutionBackend:
         self,
         *,
         run: InferenceRun,
-        attempt_id: str,
+        attempt_number: int,
         status: str,
         started_at: str,
         completed_at: str,
@@ -235,9 +236,9 @@ class LocalExecutionBackend:
                 backend_version=self.version,
                 config=dict(self.config),
             ),
-            identity=ExecutionIdentity(run_id=_run_id(run)),
+            identity=ExecutionIdentity(name=run.name, run_id=_run_id(run)),
             attempt=ExecutionAttempt(
-                attempt_id=attempt_id,
+                attempt_number=attempt_number,
                 started_at=started_at,
                 completed_at=completed_at,
             ),
@@ -250,6 +251,12 @@ def _run_id(run: InferenceRun) -> str:
     if run.context is not None and run.context.run_id:
         return run.context.run_id
     return str(uuid4())
+
+
+def _require_positive_attempt_number(attempt_number: int) -> None:
+    if attempt_number < 1:
+        msg = "attempt_number must be positive."
+        raise ValueError(msg)
 
 
 def _utc_timestamp() -> str:

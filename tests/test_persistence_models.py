@@ -186,7 +186,7 @@ def _evaluate_with_seed(model: Model, *, seed: int) -> float:
     stream = RandomStreamSpec(
         algorithm="numpy.pcg64",
         seed=seed,
-        stream_id="replicate-0",
+        stream_id="stream-0",
         schema_version="1",
     )
     context = EvaluationContext(rng=stream.to_generator())

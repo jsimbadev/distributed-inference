@@ -66,8 +66,6 @@ def inference_run_spec(
     return InferenceRunSpec(
         name="local-prng-smoke",
         run_id="run-001",
-        replicate_id="replicate-000",
-        attempt_id="attempt-000",
         model=ModelSpec.from_callable(
             prng_model_builder,
             config={"dimension": 1},
@@ -78,7 +76,7 @@ def inference_run_spec(
         random_stream=RandomStreamSpec(
             algorithm="numpy.pcg64",
             seed=42,
-            stream_id="replicate-000",
+            stream_id="stream-000",
             schema_version="1",
         ),
         context_metadata={"target": "full-posterior"},
@@ -92,6 +90,14 @@ def test_inference_run_spec_rehydrates_initial_point(
     run = inference_run_spec.to_inference_run()
 
     np.testing.assert_allclose(run.initial_point, np.array([0.0]))
+
+
+def test_inference_run_spec_rehydrates_name(
+    inference_run_spec: InferenceRunSpec,
+) -> None:
+    run = inference_run_spec.to_inference_run()
+
+    assert run.name == "local-prng-smoke"
 
 
 def test_inference_run_spec_rehydrates_runtime_context(
@@ -140,16 +146,12 @@ def test_inference_run_spec_manifest_uses_callable_model_reference(
     assert payload["model"]["kind"] == "python-callable"
 
 
-def test_inference_run_spec_manifest_separates_run_replicate_and_attempt(
+def test_inference_run_spec_manifest_identifies_named_run_invocation(
     inference_run_spec: InferenceRunSpec,
 ) -> None:
     payload = inference_run_spec.to_manifest()
 
-    assert payload["identity"] == {
-        "run_id": "run-001",
-        "replicate_id": "replicate-000",
-        "attempt_id": "attempt-000",
-    }
+    assert payload["identity"] == {"run_id": "run-001"}
 
 
 def test_inference_run_spec_round_trips_through_json(
