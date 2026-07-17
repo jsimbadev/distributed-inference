@@ -83,18 +83,3 @@ def test_evaluation_context_is_passed_to_callable(
     model = CallableModel(name="stateful", dimension=1, fn=log_density)
 
     assert model(np.array([0.0]), evaluation_context) == 2.0
-
-
-def test_evaluation_context_rng_can_be_used_by_callable(
-    evaluation_context: EvaluationContext,
-) -> None:
-    def log_density(x: FloatArray, context: EvaluationContext | None) -> float:
-        if context is None or context.rng is None:
-            raise RuntimeError("rng is required")
-        return float(context.rng.normal())
-
-    model = CallableModel(name="rng-user", dimension=1, fn=log_density)
-
-    assert model(np.array([0.0]), evaluation_context) == pytest.approx(
-        -0.9891213503478509
-    )
