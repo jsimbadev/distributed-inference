@@ -36,7 +36,6 @@ def inference_run_spec() -> InferenceRunSpec:
     return InferenceRunSpec(
         name="local-prng-smoke",
         run_id="run-001",
-        task_id="task-000",
         replicate_id="replicate-000",
         attempt_id="attempt-000",
         model=ModelSpec.from_callable(

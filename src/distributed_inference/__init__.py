@@ -15,6 +15,7 @@ from distributed_inference.engines import (
 )
 from distributed_inference.errors import (
     DistributedInferenceError,
+    ManifestError,
     ModelCapabilityError,
     ModelError,
 )
@@ -44,6 +45,7 @@ __all__ = [
     "InferenceEngine",
     "InferenceResult",
     "InferenceRun",
+    "ManifestError",
     "Model",
     "ModelCapabilityError",
     "ModelError",
