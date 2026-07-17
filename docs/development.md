@@ -45,9 +45,10 @@ The hooks currently run:
 
 - `ruff check --fix`;
 - `ruff format`;
+- `pydoclint .`;
 - `ty check`.
 
-The pre-commit hooks use local commands through `uv run`. This keeps hook behavior aligned with the project environment instead of relying on separately managed hook environments. Continuous integration invokes Ruff and `ty` directly over the project using the same committed configuration.
+The pre-commit hooks use local commands through `uv run`. This keeps hook behavior aligned with the project environment instead of relying on separately managed hook environments. Continuous integration invokes Ruff, pydoclint, and `ty` directly over the project using the same committed configuration.
 
 ## Run Hygiene Checks Directly
 
@@ -61,6 +62,12 @@ Format:
 
 ```{code-block} bash
 uv run ruff format
+```
+
+Docstring consistency:
+
+```{code-block} bash
+uv run pydoclint .
 ```
 
 Type check:
@@ -87,7 +94,7 @@ Only the initial scaffold exists at this stage.
 
 Continuous integration protects the default branch by requiring each proposed change to satisfy three independent guarantees:
 
-- the project conforms to the repository's Ruff and `ty` configuration;
+- the project conforms to the repository's Ruff, pydoclint, and `ty` configuration;
 - the unit-test suite passes on every supported Python version;
 - the documentation builds without warnings.
 
