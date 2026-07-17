@@ -11,3 +11,7 @@ class ModelError(DistributedInferenceError):
 
 class ModelCapabilityError(ModelError):
     """Raised when a model does not support a requested capability."""
+
+
+class ManifestError(DistributedInferenceError):
+    """Raised when a persisted manifest cannot be constructed."""

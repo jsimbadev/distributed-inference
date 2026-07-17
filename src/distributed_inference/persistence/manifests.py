@@ -5,9 +5,9 @@ from __future__ import annotations
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Any
-from uuid import uuid4
 
 from distributed_inference.engines.base import InferenceResult
+from distributed_inference.errors import ManifestError
 from distributed_inference.persistence.models import ModelSpec
 from distributed_inference.persistence.random_streams import RandomStreamSpec
 
@@ -66,13 +66,30 @@ class ArtifactReference:
 
 
 @dataclass(frozen=True)
+class ResultManifestMetadata:
+    """Implementation-owned metadata required to persist an inference result."""
+
+    schema_version: str
+    workflow_id: str
+    replicate_id: str
+    attempt_id: str
+    model: ModelSpec
+    target: TargetSpec
+    engine: EngineSpec
+    random_stream: RandomStreamSpec
+    artifacts: Mapping[str, ArtifactReference]
+    status: str
+    started_at: str | None = None
+    completed_at: str | None = None
+
+
+@dataclass(frozen=True)
 class ResultManifest:
     """Serializable manifest for a completed inference result."""
 
     schema_version: str
     workflow_id: str
     run_id: str
-    task_id: str
     replicate_id: str
     attempt_id: str
     model: ModelSpec
@@ -90,43 +107,29 @@ class ResultManifest:
     def from_result(
         cls,
         result: InferenceResult[Any],
-        *,
-        schema_version: str,
-        workflow_id: str,
-        task_id: str,
-        replicate_id: str,
-        attempt_id: str,
-        model: ModelSpec,
-        target: TargetSpec,
-        engine: EngineSpec,
-        random_stream: RandomStreamSpec,
-        artifacts: Mapping[str, ArtifactReference],
-        status: str,
-        started_at: str | None = None,
-        completed_at: str | None = None,
     ) -> ResultManifest:
         """Create a serializable manifest from an in-memory result."""
         context = result.run.context
-        run_id = (
-            context.run_id if context is not None and context.run_id else str(uuid4())
-        )
+        metadata = _require_manifest_metadata(result)
+        if context is None or not context.run_id:
+            msg = "Cannot persist a result whose run has no run_id."
+            raise ManifestError(msg)
         return cls(
-            schema_version=schema_version,
-            workflow_id=workflow_id,
-            run_id=run_id,
-            task_id=task_id,
-            replicate_id=replicate_id,
-            attempt_id=attempt_id,
-            model=model,
-            target=target,
-            engine=engine,
-            random_stream=random_stream,
+            schema_version=metadata.schema_version,
+            workflow_id=metadata.workflow_id,
+            run_id=context.run_id,
+            replicate_id=metadata.replicate_id,
+            attempt_id=metadata.attempt_id,
+            model=metadata.model,
+            target=metadata.target,
+            engine=metadata.engine,
+            random_stream=metadata.random_stream,
             diagnostics=dict(result.diagnostics),
-            artifacts=dict(artifacts),
+            artifacts=dict(metadata.artifacts),
             context_metadata=dict(context.metadata) if context is not None else {},
-            status=status,
-            started_at=started_at,
-            completed_at=completed_at,
+            status=metadata.status,
+            started_at=metadata.started_at,
+            completed_at=metadata.completed_at,
         )
 
     def to_manifest(self) -> dict[str, Any]:
@@ -136,7 +139,6 @@ class ResultManifest:
             "identity": {
                 "workflow_id": self.workflow_id,
                 "run_id": self.run_id,
-                "task_id": self.task_id,
                 "replicate_id": self.replicate_id,
                 "attempt_id": self.attempt_id,
             },
@@ -161,3 +163,11 @@ class ResultManifest:
                 "metadata": dict(self.context_metadata),
             },
         }
+
+
+def _require_manifest_metadata(result: InferenceResult[Any]) -> ResultManifestMetadata:
+    metadata = getattr(result, "manifest_metadata", None)
+    if not isinstance(metadata, ResultManifestMetadata):
+        msg = "Cannot persist a result without manifest metadata."
+        raise ManifestError(msg)
+    return metadata

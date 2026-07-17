@@ -20,7 +20,6 @@ class InferenceRunSpec:
 
     name: str
     run_id: str
-    task_id: str
     replicate_id: str
     attempt_id: str
     model: ModelSpec
@@ -49,7 +48,6 @@ class InferenceRunSpec:
             "name": self.name,
             "identity": {
                 "run_id": self.run_id,
-                "task_id": self.task_id,
                 "replicate_id": self.replicate_id,
                 "attempt_id": self.attempt_id,
             },

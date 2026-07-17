@@ -4,6 +4,7 @@ from distributed_inference.persistence.manifests import (
     ArtifactReference,
     EngineSpec,
     ResultManifest,
+    ResultManifestMetadata,
     TargetSpec,
 )
 from distributed_inference.persistence.models import ModelSpec, PythonCallableSpec
@@ -18,5 +19,6 @@ __all__ = [
     "PythonCallableSpec",
     "RandomStreamSpec",
     "ResultManifest",
+    "ResultManifestMetadata",
     "TargetSpec",
 ]
