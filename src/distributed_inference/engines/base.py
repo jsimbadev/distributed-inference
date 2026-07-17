@@ -40,6 +40,7 @@ class EvaluationRecorder:
 class InferenceRun:
     """Input data required to run an inference engine."""
 
+    name: str
     model: Model
     initial_point: FloatArray
     context: EvaluationContext | None = None

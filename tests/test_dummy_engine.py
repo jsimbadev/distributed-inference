@@ -37,6 +37,7 @@ def test_dummy_engine_result_payload_is_json_serializable() -> None:
 
 def _run(*, record_evaluations: bool) -> InferenceRun:
     return InferenceRun(
+        name="dummy-gaussian",
         model=CallableModel(name="gaussian", dimension=2, fn=_log_density),
         initial_point=np.array([1.0, 2.0]),
         context=EvaluationContext(run_id="run-001"),

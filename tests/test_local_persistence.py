@@ -77,8 +77,6 @@ def run_spec(
     return InferenceRunSpec(
         name="local-dummy-smoke",
         run_id="run-001",
-        replicate_id="replicate-000",
-        attempt_id="attempt-000",
         model=ModelSpec.from_callable(
             gaussian_model_builder,
             config={"dimension": 2},
@@ -89,7 +87,7 @@ def run_spec(
         random_stream=RandomStreamSpec(
             algorithm="numpy.pcg64",
             seed=42,
-            stream_id="replicate-000",
+            stream_id="stream-000",
             schema_version="1",
         ),
         context_metadata={"target": "full-posterior"},
@@ -105,20 +103,20 @@ def local_smoke_run(tmp_path: Path, run_spec: InferenceRunSpec) -> LocalSmokeRun
     executed = LocalExecutionBackend().execute(
         run,
         engine,
-        attempt_id=run_spec.attempt_id,
+        attempt_number=1,
     )
     artifacts = store.write_result_artifacts(executed.result)
-    checkpoint = store.write_json_artifact(
+    checkpoint = store.write_invocation_json_artifact(
         "checkpoints/dummy-state.json",
         {"kind": "dummy-checkpoint", "state": {}},
+        name=run_spec.name,
+        run_id=run_spec.run_id,
     )
     result_manifest = ResultManifest.from_result(
         executed.result,
         ResultManifestMetadata(
             schema_version="1",
-            workflow_id="workflow-001",
-            replicate_id=run_spec.replicate_id,
-            attempt_id=run_spec.attempt_id,
+            attempt_number=executed.execution.attempt.attempt_number,
             model=run_spec.model,
             target=TargetSpec(
                 identifier="temporary-gaussian.full-posterior",
@@ -154,7 +152,13 @@ def local_smoke_run(tmp_path: Path, run_spec: InferenceRunSpec) -> LocalSmokeRun
 def test_local_store_persists_core_manifests(
     local_smoke_run: LocalSmokeRun,
 ) -> None:
-    files = {path.name for path in local_smoke_run.store.root.glob("*.json")}
+    invocation_root = (
+        local_smoke_run.store.root
+        / "runs"
+        / local_smoke_run.run_spec.name
+        / local_smoke_run.run_spec.run_id
+    )
+    files = {path.name for path in invocation_root.glob("*.json")}
 
     assert files == {"execution.json", "result.json", "run.json"}
 
@@ -162,7 +166,11 @@ def test_local_store_persists_core_manifests(
 def test_local_store_result_manifest_references_posterior_artifact(
     local_smoke_run: LocalSmokeRun,
 ) -> None:
-    payload = local_smoke_run.store.read_json("result.json")
+    payload = local_smoke_run.store.read_invocation_json(
+        local_smoke_run.run_spec.name,
+        local_smoke_run.run_spec.run_id,
+        "result.json",
+    )
 
     assert payload["artifacts"]["posterior"]["uri"] == "artifacts/posterior.json"
 
@@ -170,7 +178,11 @@ def test_local_store_result_manifest_references_posterior_artifact(
 def test_local_store_result_manifest_references_checkpoint_separately(
     local_smoke_run: LocalSmokeRun,
 ) -> None:
-    payload = local_smoke_run.store.read_json("result.json")
+    payload = local_smoke_run.store.read_invocation_json(
+        local_smoke_run.run_spec.name,
+        local_smoke_run.run_spec.run_id,
+        "result.json",
+    )
 
     assert payload["checkpoints"]["engine_state"]["uri"] == (
         "checkpoints/dummy-state.json"
@@ -180,7 +192,11 @@ def test_local_store_result_manifest_references_checkpoint_separately(
 def test_local_store_result_manifest_does_not_serialize_runtime_cache(
     local_smoke_run: LocalSmokeRun,
 ) -> None:
-    payload = local_smoke_run.store.read_json("result.json")
+    payload = local_smoke_run.store.read_invocation_json(
+        local_smoke_run.run_spec.name,
+        local_smoke_run.run_spec.run_id,
+        "result.json",
+    )
 
     assert "cache" not in payload["context"]
 
@@ -188,7 +204,15 @@ def test_local_store_result_manifest_does_not_serialize_runtime_cache(
 def test_local_store_result_manifest_round_trips(
     local_smoke_run: LocalSmokeRun,
 ) -> None:
-    payload = json.loads(json.dumps(local_smoke_run.store.read_json("result.json")))
+    payload = json.loads(
+        json.dumps(
+            local_smoke_run.store.read_invocation_json(
+                local_smoke_run.run_spec.name,
+                local_smoke_run.run_spec.run_id,
+                "result.json",
+            )
+        )
+    )
 
     assert ResultManifest.from_manifest(payload).to_manifest() == payload
 

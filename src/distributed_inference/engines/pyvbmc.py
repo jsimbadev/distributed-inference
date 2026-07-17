@@ -66,12 +66,14 @@ class PyVBMCEngine:
         model: Model,
         initial_point: ArrayLike,
         *,
+        name: str = "pyvbmc-run",
         context: EvaluationContext | None = None,
         record_evaluations: bool = False,
     ) -> PyVBMCResult:
         """Run PyVBMC on a Distributed Inference model."""
         x0 = as_vector(initial_point, name="initial_point")
         run = InferenceRun(
+            name=name,
             model=model,
             initial_point=x0,
             context=context,

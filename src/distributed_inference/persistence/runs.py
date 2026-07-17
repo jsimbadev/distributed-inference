@@ -21,8 +21,6 @@ class InferenceRunSpec:
 
     name: str
     run_id: str
-    replicate_id: str
-    attempt_id: str
     model: ModelSpec
     initial_point: Sequence[float]
     random_stream: RandomStreamSpec
@@ -38,6 +36,7 @@ class InferenceRunSpec:
             metadata=dict(self.context_metadata),
         )
         return InferenceRun(
+            name=self.name,
             model=self.model.to_model(),
             initial_point=np.asarray(self.initial_point, dtype=np.float64),
             context=context,
@@ -51,8 +50,6 @@ class InferenceRunSpec:
             "name": self.name,
             "identity": {
                 "run_id": self.run_id,
-                "replicate_id": self.replicate_id,
-                "attempt_id": self.attempt_id,
             },
             "model": self.model.to_manifest(),
             "initial_point": list(self.initial_point),
@@ -91,8 +88,6 @@ class InferenceRunSpec:
             schema_version=str(payload["schema_version"]),
             name=str(payload["name"]),
             run_id=str(identity["run_id"]),
-            replicate_id=str(identity["replicate_id"]),
-            attempt_id=str(identity["attempt_id"]),
             model=ModelSpec.from_manifest(model),
             initial_point=list(payload["initial_point"]),
             random_stream=RandomStreamSpec.from_manifest(random_stream),
