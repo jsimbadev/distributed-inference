@@ -6,10 +6,11 @@ This guide describes how to set up a local development environment and run the p
 
 Install:
 
-- Python 3.13 or newer;
+- Python 3.11 or newer;
 - `uv`;
 - Git.
 
+The supported Python range is exercised in continuous integration. Python 3.11 is the minimum supported version, and CI tests each stable minor version through the newest supported release.
 
 ## Create The Environment
 
@@ -44,9 +45,10 @@ The hooks currently run:
 
 - `ruff check --fix`;
 - `ruff format`;
+- `pydoclint .`;
 - `ty check`.
 
-The pre-commit hooks use local commands through `uv run`. This keeps hook behavior aligned with the project environment instead of relying on separately managed hook environments.
+The pre-commit hooks use local commands through `uv run`. This keeps hook behavior aligned with the project environment instead of relying on separately managed hook environments. Continuous integration invokes Ruff, pydoclint, and `ty` directly over the project using the same committed configuration.
 
 ## Run Hygiene Checks Directly
 
@@ -60,6 +62,12 @@ Format:
 
 ```{code-block} bash
 uv run ruff format
+```
+
+Docstring consistency:
+
+```{code-block} bash
+uv run pydoclint .
 ```
 
 Type check:
@@ -77,10 +85,20 @@ uv run pytest
 Docs:
 
 ```{code-block} bash
-uv run sphinx-build -b html docs docs/_build/html
+uv run sphinx-build -W -b html docs docs/_build/html
 ```
 
 Only the initial scaffold exists at this stage.
+
+## Continuous Integration
+
+Continuous integration protects the default branch by requiring each proposed change to satisfy three independent guarantees:
+
+- the project conforms to the repository's Ruff, pydoclint, and `ty` configuration;
+- the unit-test suite passes on every supported Python version;
+- the documentation builds without warnings.
+
+A pull request is ready only when all required guarantees hold. Keeping the checks independent makes failures attributable and allows unrelated validation to proceed in parallel.
 
 ## Development Principles
 
@@ -93,12 +111,13 @@ Prefer small, inspectable changes:
 - diagnostics should report uncertainty and disagreement instead of hiding it behind a single combined posterior.
 
 ## Whole project validation
+
 Run:
 
 ```{code-block} bash
 uv run pre-commit run --all-files
 uv run pytest
-uv run sphinx-build -b html docs docs/_build/html
+uv run sphinx-build -W -b html docs docs/_build/html
 ```
 
 If a check fails, fix the underlying issue rather than weakening the tool configuration.
