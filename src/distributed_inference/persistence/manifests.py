@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, cast
 
 from distributed_inference.engines.base import InferenceResult
 from distributed_inference.errors import ManifestError
@@ -30,6 +30,16 @@ class TargetSpec:
             "coordinate_space": self.coordinate_space,
         }
 
+    @classmethod
+    def from_manifest(cls, payload: Mapping[str, Any]) -> TargetSpec:
+        """Rehydrate a target spec from a manifest payload."""
+        return cls(
+            identifier=str(payload["identifier"]),
+            semantics=str(payload["semantics"]),
+            dimension=int(payload["dimension"]),
+            coordinate_space=str(payload["coordinate_space"]),
+        )
+
 
 @dataclass(frozen=True)
 class EngineSpec:
@@ -46,6 +56,19 @@ class EngineSpec:
             "version": self.version,
             "config": dict(self.config),
         }
+
+    @classmethod
+    def from_manifest(cls, payload: Mapping[str, Any]) -> EngineSpec:
+        """Rehydrate an engine spec from a manifest payload."""
+        config = payload.get("config", {})
+        if not isinstance(config, Mapping):
+            msg = "Engine manifest config must be a mapping."
+            raise ManifestError(msg)
+        return cls(
+            name=str(payload["name"]),
+            version=str(payload["version"]),
+            config=dict(config),
+        )
 
 
 @dataclass(frozen=True)
@@ -64,6 +87,15 @@ class ArtifactReference:
             "checksum": self.checksum,
         }
 
+    @classmethod
+    def from_manifest(cls, payload: Mapping[str, Any]) -> ArtifactReference:
+        """Rehydrate an artifact reference from a manifest payload."""
+        return cls(
+            uri=str(payload["uri"]),
+            media_type=str(payload["media_type"]),
+            checksum=str(payload["checksum"]),
+        )
+
 
 @dataclass(frozen=True)
 class ResultManifestMetadata:
@@ -79,6 +111,7 @@ class ResultManifestMetadata:
     random_stream: RandomStreamSpec
     artifacts: Mapping[str, ArtifactReference]
     status: str
+    checkpoints: Mapping[str, ArtifactReference] = field(default_factory=dict)
     started_at: str | None = None
     completed_at: str | None = None
 
@@ -98,6 +131,7 @@ class ResultManifest:
     random_stream: RandomStreamSpec
     diagnostics: Mapping[str, Any]
     artifacts: Mapping[str, ArtifactReference]
+    checkpoints: Mapping[str, ArtifactReference] = field(default_factory=dict)
     context_metadata: Mapping[str, Any] = field(default_factory=dict)
     status: str = "completed"
     started_at: str | None = None
@@ -107,10 +141,11 @@ class ResultManifest:
     def from_result(
         cls,
         result: InferenceResult[Any],
+        metadata: ResultManifestMetadata | None = None,
     ) -> ResultManifest:
         """Create a serializable manifest from an in-memory result."""
         context = result.run.context
-        metadata = _require_manifest_metadata(result)
+        metadata = metadata or _require_manifest_metadata(result)
         if context is None or not context.run_id:
             msg = "Cannot persist a result whose run has no run_id."
             raise ManifestError(msg)
@@ -126,6 +161,7 @@ class ResultManifest:
             random_stream=metadata.random_stream,
             diagnostics=dict(result.diagnostics),
             artifacts=dict(metadata.artifacts),
+            checkpoints=dict(metadata.checkpoints),
             context_metadata=dict(context.metadata) if context is not None else {},
             status=metadata.status,
             started_at=metadata.started_at,
@@ -158,11 +194,78 @@ class ResultManifest:
                 name: reference.to_manifest()
                 for name, reference in self.artifacts.items()
             },
+            "checkpoints": {
+                name: reference.to_manifest()
+                for name, reference in self.checkpoints.items()
+            },
             "context": {
                 "run_id": self.run_id,
                 "metadata": dict(self.context_metadata),
             },
         }
+
+    @classmethod
+    def from_manifest(cls, payload: Mapping[str, Any]) -> ResultManifest:
+        """Rehydrate a result manifest from a manifest payload."""
+        identity = payload["identity"]
+        if not isinstance(identity, Mapping):
+            msg = "Result manifest identity must be a mapping."
+            raise ManifestError(msg)
+        model = payload["model"]
+        target = payload["target"]
+        engine = payload["engine"]
+        reproducibility = payload["reproducibility"]
+        artifacts = payload["artifacts"]
+        checkpoints = payload.get("checkpoints", {})
+        timestamps = payload.get("timestamps", {})
+        context = payload.get("context", {})
+        for name, value in {
+            "model": model,
+            "target": target,
+            "engine": engine,
+            "reproducibility": reproducibility,
+            "artifacts": artifacts,
+            "checkpoints": checkpoints,
+            "timestamps": timestamps,
+            "context": context,
+        }.items():
+            if not isinstance(value, Mapping):
+                msg = f"Result manifest {name} must be a mapping."
+                raise ManifestError(msg)
+        context_metadata = context.get("metadata", {})
+        if not isinstance(context_metadata, Mapping):
+            msg = "Result manifest context metadata must be a mapping."
+            raise ManifestError(msg)
+        return cls(
+            schema_version=str(payload["schema_version"]),
+            workflow_id=str(identity["workflow_id"]),
+            run_id=str(identity["run_id"]),
+            replicate_id=str(identity["replicate_id"]),
+            attempt_id=str(identity["attempt_id"]),
+            model=ModelSpec.from_manifest(model),
+            target=TargetSpec.from_manifest(target),
+            engine=EngineSpec.from_manifest(engine),
+            random_stream=RandomStreamSpec.from_manifest(
+                _require_mapping(reproducibility["random_stream"]),
+            ),
+            diagnostics=dict(_require_mapping(payload["diagnostics"])),
+            artifacts={
+                str(name): ArtifactReference.from_manifest(
+                    _require_mapping(reference),
+                )
+                for name, reference in artifacts.items()
+            },
+            checkpoints={
+                str(name): ArtifactReference.from_manifest(
+                    _require_mapping(reference),
+                )
+                for name, reference in checkpoints.items()
+            },
+            context_metadata=dict(context_metadata),
+            status=str(payload["status"]),
+            started_at=_optional_str(timestamps.get("started_at")),
+            completed_at=_optional_str(timestamps.get("completed_at")),
+        )
 
 
 def _require_manifest_metadata(result: InferenceResult[Any]) -> ResultManifestMetadata:
@@ -171,3 +274,16 @@ def _require_manifest_metadata(result: InferenceResult[Any]) -> ResultManifestMe
         msg = "Cannot persist a result without manifest metadata."
         raise ManifestError(msg)
     return metadata
+
+
+def _require_mapping(value: object) -> Mapping[str, Any]:
+    if not isinstance(value, Mapping):
+        msg = "Manifest field must be a mapping."
+        raise ManifestError(msg)
+    return cast(Mapping[str, Any], value)
+
+
+def _optional_str(value: object) -> str | None:
+    if value is None:
+        return None
+    return str(value)

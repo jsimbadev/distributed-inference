@@ -114,6 +114,12 @@ def artifact_references() -> dict[str, ArtifactReference]:
             media_type="application/x-npz",
             checksum="sha256:posterior",
         ),
+    }
+
+
+@pytest.fixture
+def checkpoint_references() -> dict[str, ArtifactReference]:
+    return {
         "checkpoint": ArtifactReference(
             uri="checkpoints/engine-state.msgpack",
             media_type="application/msgpack",
@@ -129,6 +135,7 @@ def manifest_metadata(
     engine_spec: EngineSpec,
     random_stream_spec: RandomStreamSpec,
     artifact_references: dict[str, ArtifactReference],
+    checkpoint_references: dict[str, ArtifactReference],
 ) -> ResultManifestMetadata:
     return ResultManifestMetadata(
         schema_version="1",
@@ -140,6 +147,7 @@ def manifest_metadata(
         engine=engine_spec,
         random_stream=random_stream_spec,
         artifacts=artifact_references,
+        checkpoints=checkpoint_references,
         status="completed",
         started_at="2026-07-17T09:00:00Z",
         completed_at="2026-07-17T09:05:00Z",
@@ -230,9 +238,17 @@ def test_result_manifest_references_checkpoint_separately(
     result_manifest: ResultManifest,
 ) -> None:
     payload = result_manifest.to_manifest()
-    checkpoint = payload["artifacts"]["checkpoint"]
+    checkpoint = payload["checkpoints"]["checkpoint"]
 
     assert checkpoint["uri"] == "checkpoints/engine-state.msgpack"
+
+
+def test_result_manifest_keeps_checkpoint_out_of_completed_artifacts(
+    result_manifest: ResultManifest,
+) -> None:
+    payload = result_manifest.to_manifest()
+
+    assert "checkpoint" not in payload["artifacts"]
 
 
 def test_result_manifest_does_not_serialize_runtime_context_cache(
@@ -249,3 +265,11 @@ def test_result_manifest_is_json_serializable(
     payload = result_manifest.to_manifest()
 
     assert isinstance(json.dumps(payload), str)
+
+
+def test_result_manifest_round_trips_through_json(
+    result_manifest: ResultManifest,
+) -> None:
+    payload = json.loads(json.dumps(result_manifest.to_manifest()))
+
+    assert ResultManifest.from_manifest(payload).to_manifest() == payload

@@ -1,5 +1,9 @@
 """Persistence primitives for process-independent inference manifests."""
 
+from distributed_inference.persistence.local import (
+    LocalInferenceStore,
+    PersistedInferenceFiles,
+)
 from distributed_inference.persistence.manifests import (
     ArtifactReference,
     EngineSpec,
@@ -15,7 +19,9 @@ __all__ = [
     "ArtifactReference",
     "EngineSpec",
     "InferenceRunSpec",
+    "LocalInferenceStore",
     "ModelSpec",
+    "PersistedInferenceFiles",
     "PythonCallableSpec",
     "RandomStreamSpec",
     "ResultManifest",

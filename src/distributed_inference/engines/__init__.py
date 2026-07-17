@@ -7,8 +7,14 @@ from distributed_inference.engines.base import (
     InferenceRun,
     ModelEvaluation,
 )
+from distributed_inference.engines.dummy import (
+    DummyInferenceEngine,
+    DummyInferenceResult,
+)
 
 __all__ = [
+    "DummyInferenceEngine",
+    "DummyInferenceResult",
     "EvaluationRecorder",
     "InferenceEngine",
     "InferenceResult",

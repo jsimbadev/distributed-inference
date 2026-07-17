@@ -1,24 +1,30 @@
+import importlib.util
 import json
-from collections.abc import Mapping
+import sys
+from collections.abc import Iterator
 from pathlib import Path
-from typing import Any, cast
+from types import ModuleType
+from typing import cast
 
 import numpy as np
 import pytest
 
-from distributed_inference import CallableModel, EvaluationContext
-from distributed_inference._validation import FloatArray
-from distributed_inference.persistence.models import ModelSpec
+from distributed_inference import EvaluationContext
+from distributed_inference.persistence.models import ModelBuilder, ModelSpec
 from distributed_inference.persistence.random_streams import RandomStreamSpec
 from distributed_inference.persistence.runs import InferenceRunSpec
 
-PROJECT_ROOT = Path.cwd()
+TEMPORARY_RUN_MODEL_SOURCE = """
+import numpy as np
 
 
-def _build_prng_model(config: Mapping[str, Any]) -> CallableModel:
+from distributed_inference import CallableModel
+
+
+def build_prng_model(config):
     dimension = int(config["dimension"])
 
-    def log_density(x: FloatArray, context: EvaluationContext | None) -> float:
+    def log_density(x, context):
         if context is None or context.rng is None:
             msg = "prng-model requires an EvaluationContext with an rng"
             raise RuntimeError(msg)
@@ -29,19 +35,43 @@ def _build_prng_model(config: Mapping[str, Any]) -> CallableModel:
         dimension=dimension,
         fn=log_density,
     )
+"""
 
 
 @pytest.fixture
-def inference_run_spec() -> InferenceRunSpec:
+def temporary_project(tmp_path: Path) -> Path:
+    (tmp_path / "temporary_run_model.py").write_text(
+        TEMPORARY_RUN_MODEL_SOURCE,
+        encoding="utf-8",
+    )
+    return tmp_path
+
+
+@pytest.fixture
+def prng_model_builder(temporary_project: Path) -> Iterator[ModelBuilder]:
+    module = _load_module(
+        "temporary_run_model",
+        temporary_project / "temporary_run_model.py",
+    )
+    sys.modules[module.__name__] = module
+    yield module.build_prng_model
+    sys.modules.pop(module.__name__, None)
+
+
+@pytest.fixture
+def inference_run_spec(
+    temporary_project: Path,
+    prng_model_builder: ModelBuilder,
+) -> InferenceRunSpec:
     return InferenceRunSpec(
         name="local-prng-smoke",
         run_id="run-001",
         replicate_id="replicate-000",
         attempt_id="attempt-000",
         model=ModelSpec.from_callable(
-            _build_prng_model,
+            prng_model_builder,
             config={"dimension": 1},
-            project_root=PROJECT_ROOT,
+            project_root=temporary_project,
             version="1",
         ),
         initial_point=[0.0],
@@ -108,3 +138,33 @@ def test_inference_run_spec_manifest_uses_callable_model_reference(
     payload = inference_run_spec.to_manifest()
 
     assert payload["model"]["kind"] == "python-callable"
+
+
+def test_inference_run_spec_manifest_separates_run_replicate_and_attempt(
+    inference_run_spec: InferenceRunSpec,
+) -> None:
+    payload = inference_run_spec.to_manifest()
+
+    assert payload["identity"] == {
+        "run_id": "run-001",
+        "replicate_id": "replicate-000",
+        "attempt_id": "attempt-000",
+    }
+
+
+def test_inference_run_spec_round_trips_through_json(
+    inference_run_spec: InferenceRunSpec,
+) -> None:
+    payload = json.loads(json.dumps(inference_run_spec.to_manifest()))
+
+    assert InferenceRunSpec.from_manifest(payload).to_manifest() == payload
+
+
+def _load_module(module_name: str, path: Path) -> ModuleType:
+    spec = importlib.util.spec_from_file_location(module_name, path)
+    if spec is None or spec.loader is None:
+        msg = f"Could not load module from {path}."
+        raise RuntimeError(msg)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module

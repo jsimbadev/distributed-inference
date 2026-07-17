@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
 import numpy as np
 
-from distributed_inference.errors import ModelError
+from distributed_inference.errors import ManifestError, ModelError
 
 
 @dataclass(frozen=True)
@@ -36,3 +37,17 @@ class RandomStreamSpec:
             "seed": self.seed,
             "stream_id": self.stream_id,
         }
+
+    @classmethod
+    def from_manifest(cls, payload: Mapping[str, Any]) -> RandomStreamSpec:
+        """Rehydrate a random-stream spec from a manifest payload."""
+        try:
+            return cls(
+                schema_version=str(payload["schema_version"]),
+                algorithm=str(payload["algorithm"]),
+                seed=int(payload["seed"]),
+                stream_id=str(payload["stream_id"]),
+            )
+        except KeyError as exc:
+            msg = f"Random-stream manifest is missing {exc.args[0]!r}."
+            raise ManifestError(msg) from exc
