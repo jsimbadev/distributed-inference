@@ -21,8 +21,6 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Install uv and Python
         uses: astral-sh/setup-uv@v6
@@ -34,52 +32,16 @@ jobs:
       - name: Install development environment
         run: uv sync --locked --group dev --python 3.11
 
-      - name: Collect changed Python files
-        id: changed-python
-        shell: bash
-        run: |
-          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            base="${{ github.event.pull_request.base.sha }}"
-            head="${{ github.event.pull_request.head.sha }}"
-            git diff --name-only --diff-filter=ACMR -z "$base" "$head" -- '*.py' '*.pyi' > changed-python-files
-          elif [[ "${{ github.event_name }}" == "push" ]]; then
-            base="${{ github.event.before }}"
-            head="${{ github.sha }}"
-            git diff --name-only --diff-filter=ACMR -z "$base" "$head" -- '*.py' '*.pyi' > changed-python-files
-          else
-            git ls-files -z -- '*.py' '*.pyi' > changed-python-files
-          fi
-
-          if [[ -s changed-python-files ]]; then
-            echo "has-files=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "has-files=false" >> "$GITHUB_OUTPUT"
-          fi
-
       - name: Run Ruff linting
-        if: steps.changed-python.outputs.has-files == 'true'
-        shell: bash
-        run: |
-          mapfile -d '' files < changed-python-files
-          uv run ruff check "${files[@]}"
+        run: uv run --no-sync ruff check
 
       - name: Check Ruff formatting
-        if: steps.changed-python.outputs.has-files == 'true'
-        shell: bash
-        run: |
-          mapfile -d '' files < changed-python-files
-          uv run ruff format --check "${files[@]}"
+        if: ${{ always() }}
+        run: uv run --no-sync ruff format --check
 
       - name: Run ty type checking
-        if: steps.changed-python.outputs.has-files == 'true'
-        shell: bash
-        run: |
-          mapfile -d '' files < changed-python-files
-          uv run ty check "${files[@]}"
-
-      - name: Report no changed Python files
-        if: steps.changed-python.outputs.has-files != 'true'
-        run: echo "No changed Python files require quality checks."
+        if: ${{ always() }}
+        run: uv run --no-sync ty check
 
   tests:
     name: Tests (Python ${{ matrix.python-version }})
