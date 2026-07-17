@@ -1,5 +1,9 @@
 """Persistence primitives for process-independent inference manifests."""
 
+from distributed_inference.persistence.artifacts import (
+    write_pyvbmc_artifacts,
+    write_result_artifacts,
+)
 from distributed_inference.persistence.local import (
     LocalInferenceStore,
     PersistedInferenceFiles,
@@ -27,4 +31,6 @@ __all__ = [
     "ResultManifest",
     "ResultManifestMetadata",
     "TargetSpec",
+    "write_pyvbmc_artifacts",
+    "write_result_artifacts",
 ]

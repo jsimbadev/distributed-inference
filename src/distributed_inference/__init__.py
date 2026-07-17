@@ -40,6 +40,7 @@ from distributed_inference.model import (
     ModelInfo,
     ParameterSpace,
 )
+from distributed_inference.run import PersistedInference, run_inference
 from distributed_inference.transforms import (
     ParameterTransform,
     TransformedModel,
@@ -75,10 +76,12 @@ __all__ = [
     "ModelInfo",
     "ParameterSpace",
     "ParameterTransform",
+    "PersistedInference",
     "TransformedModel",
     "WithBounds",
     "__version__",
     "bounds_mapping",
+    "run_inference",
 ]
 
 __version__ = "0.1.0"
