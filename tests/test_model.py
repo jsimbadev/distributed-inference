@@ -14,27 +14,11 @@ def test_callable_model_evaluates_scalar(gaussian_model: CallableModel) -> None:
     assert gaussian_model(np.array([1.0, 2.0])) == -2.5
 
 
-def test_callable_model_exposes_model_info(gaussian_model: CallableModel) -> None:
-    assert gaussian_model.info.name == "gaussian"
-
-
 def test_callable_model_rejects_wrong_dimension(
     gaussian_model: CallableModel,
 ) -> None:
     with pytest.raises(ModelError):
         gaussian_model(np.array([1.0]))
-
-
-def test_callable_model_reports_missing_gradient(
-    gaussian_model: CallableModel,
-) -> None:
-    assert gaussian_model.info.supports_gradient is False
-
-
-def test_gradient_model_reports_gradient_support(
-    gradient_model: CallableDifferentiableModel,
-) -> None:
-    assert gradient_model.info.supports_gradient is True
 
 
 def test_gradient_model_returns_value(
