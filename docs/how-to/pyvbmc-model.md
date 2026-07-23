@@ -68,6 +68,7 @@ from distributed_inference import EvaluationContext, InferenceRun
 context = EvaluationContext(run_id="local-smoke-run")
 
 run = InferenceRun(
+    name="pyvbmc-smoke",
     model=bounded_model,
     initial_point=np.array([0.0, 0.0]),
     context=context,

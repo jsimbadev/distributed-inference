@@ -14,14 +14,15 @@ The core pieces are:
 
 ## Run Inputs
 
-`InferenceRun` contains the model, the initial point, an optional evaluation
-context, and a flag controlling whether model evaluations should be retained in
-memory:
+`InferenceRun` contains a logical name, the model, the initial point, an
+optional evaluation context, and a flag controlling whether model evaluations
+should be retained in memory:
 
 ```{code-block} python
 from distributed_inference import InferenceRun
 
 run = InferenceRun(
+    name="local-gaussian",
     model=bounded_model,
     initial_point=x0,
     context=context,
@@ -29,9 +30,10 @@ run = InferenceRun(
 )
 ```
 
-This is intentionally engine-neutral. The run says "evaluate this model from
-this starting point"; the engine decides how to turn that into backend-specific
-work.
+This is intentionally engine-neutral. The run says "for this named inference
+problem, evaluate this model from this starting point"; the engine decides how
+to turn that into backend-specific work. The context may carry `run_id`, which
+identifies one concrete invocation of the named run.
 
 ## Engines
 
@@ -41,11 +43,35 @@ An `InferenceEngine` has a name and implements `run_inference`:
 result = engine.run_inference(run)
 ```
 
+An engine is algorithmic machinery. It should not own cluster clients, process
+pools, queues, or persistence stores. Those concerns belong to
+`ExecutionBackend` and persistence components.
+
 Concrete engines may also provide convenience methods. For example,
 `PyVBMCEngine.run(...)` accepts the same essential inputs directly and builds an
 `InferenceRun` internally. The important boundary is that user code passes
 Distributed Inference abstractions into Distributed Inference engines. Backend
 objects remain implementation details.
+
+## Execution Backends
+
+An `ExecutionBackend` runs an engine against a run and records execution
+provenance:
+
+```{code-block} python
+executed = backend.execute(
+    run,
+    engine,
+    attempt_number=1,
+)
+
+result = executed.result
+execution = executed.execution
+```
+
+Local execution uses `LocalExecutionBackend`. Future cluster execution should
+implement the same boundary instead of leaking scheduler objects into models or
+engines.
 
 ## Results
 
@@ -81,6 +107,9 @@ local execution, but it is not a persistence format. Future run manifests should
 store explicit serializable metadata rather than blindly serializing the whole
 context, because a context may contain random number generators, cache handles,
 worker resources, or other process-local objects.
+
+For persisted results, use `ResultManifest` and artifact references rather than
+serializing the `InferenceResult` object directly.
 
 ## Evaluation Recording
 
