@@ -9,6 +9,8 @@ capabilities that particular inference engines may require.
 models
 contexts
 runs
+execution
+persistence
 bounds
 transforms
 ```
